@@ -4,6 +4,9 @@ import BootScene from "./scenes/BootScene.js";
 import TitleScene from "./scenes/TitleScene.js";
 import CharacterSelectScene from "./scenes/CharacterSelectScene.js";
 import PlayScene from "./scenes/PlayScene.js";
+import MaricoPuzzleActionScene from "./scenes/MaricoPuzzleActionScene.js";
+import NikoRushActionScene from "./scenes/NikoRushActionScene.js";
+import NinaEscapeRoomScene from "./scenes/NinaEscapeRoomScene.js";
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -26,5 +29,13 @@ new Phaser.Game({
       debug: false
     }
   },
-  scene: [BootScene, TitleScene, CharacterSelectScene, PlayScene]
+  scene: [
+    BootScene,
+    TitleScene,
+    CharacterSelectScene,
+    PlayScene,
+    MaricoPuzzleActionScene,
+    NikoRushActionScene,
+    NinaEscapeRoomScene
+  ]
 });

@@ -53,8 +53,8 @@ export default class CharacterSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const statsText = this.add
-      .text(0, 100, `速さ ${chara.moveSpeed}\nジャンプ ${chara.jumpPower}`, {
+    const genreText = this.add
+      .text(0, 100, chara.genreLabel, {
         fontFamily: "sans-serif",
         fontSize: "12px",
         color: "#d4cfe0",
@@ -63,14 +63,14 @@ export default class CharacterSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    container.add([panel, placeholder, nameText, statsText]);
+    container.add([panel, placeholder, nameText, genreText]);
     container.setSize(width, height);
     container.setInteractive({ useHandCursor: true });
 
     container.on("pointerover", () => panel.setStrokeStyle(3, COLORS.accent));
     container.on("pointerout", () => panel.setStrokeStyle(2, COLORS.accentSoft));
     container.on("pointerdown", () => {
-      this.scene.start("PlayScene", { characterId: chara.id });
+      this.scene.start(chara.sceneKey, { characterId: chara.id });
     });
 
     return container;
