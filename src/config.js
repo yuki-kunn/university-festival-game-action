@@ -24,3 +24,12 @@ export const CHARACTERS = [
   { id: "niko", name: "ニコ", color: COLORS.niko, moveSpeed: 260, jumpPower: 440 },
   { id: "nina", name: "ニナ", color: COLORS.nina, moveSpeed: 190, jumpPower: 540 }
 ];
+
+// ダッシュ回避の共通パラメータ（全キャラ共通。将来キャラ差をつける場合は
+// CHARACTERS側に移す）。
+export const DASH = {
+  speed: 640, // ダッシュ中の水平移動速度（moveSpeedとは独立した固定値）
+  durationMs: 180, // ダッシュが持続する時間
+  cooldownMs: 500, // 再度ダッシュできるようになるまでの時間
+  invincibleMs: 220 // ダッシュ開始からの無敵時間（durationMsより少し長め）
+};
