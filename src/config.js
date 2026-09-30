@@ -18,11 +18,49 @@ export const COLORS = {
 // 操作キャラクターの定義。スプライトは後日ドット絵に差し替える前提のため、
 // 現時点では色だけを持たせ、CharacterSelectScene / PlayScene で
 // 仮の四角形プレースホルダーとして描画する。
+//
+// 各キャラクターは全く異なるゲームジャンルを担当する（キャラクター
+// 選択＝ジャンル選択に等しい）。sceneKeyがCharacterSelectSceneの
+// 遷移先シーンキー、genreLabelがキャラ選択画面に表示する説明文。
+// moveSpeed/jumpPowerは横スクロールアクション系（主人公・マリコ）専用
+// のパラメータで、ニコ・ニナのシーンでは参照しない。
 export const CHARACTERS = [
-  { id: "mc", name: "主人公", color: COLORS.mc, moveSpeed: 220, jumpPower: 480 },
-  { id: "marico", name: "マリコ", color: COLORS.marico, moveSpeed: 200, jumpPower: 440 },
-  { id: "niko", name: "ニコ", color: COLORS.niko, moveSpeed: 260, jumpPower: 440 },
-  { id: "nina", name: "ニナ", color: COLORS.nina, moveSpeed: 190, jumpPower: 540 }
+  {
+    id: "mc",
+    name: "主人公",
+    color: COLORS.mc,
+    moveSpeed: 220,
+    jumpPower: 480,
+    sceneKey: "PlayScene",
+    genreLabel: "横スクロールアクション"
+  },
+  {
+    id: "marico",
+    name: "マリコ",
+    color: COLORS.marico,
+    moveSpeed: 200,
+    jumpPower: 440,
+    sceneKey: "MaricoPuzzleActionScene",
+    genreLabel: "パズル×アクション"
+  },
+  {
+    id: "niko",
+    name: "ニコ",
+    color: COLORS.niko,
+    moveSpeed: 260,
+    jumpPower: 440,
+    sceneKey: "NikoRushActionScene",
+    genreLabel: "爽快アクション"
+  },
+  {
+    id: "nina",
+    name: "ニナ",
+    color: COLORS.nina,
+    moveSpeed: 190,
+    jumpPower: 540,
+    sceneKey: "NinaEscapeRoomScene",
+    genreLabel: "脱出パズル（激ムズ）"
+  }
 ];
 
 // ダッシュ回避の共通パラメータ（全キャラ共通。将来キャラ差をつける場合は
