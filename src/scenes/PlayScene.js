@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH } from "../config.js";
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, TEXT_RESOLUTION } from "../config.js";
 import { STAGE1 } from "../stages/stage1.js";
 
 // 横スクロールアクション本編。移動・ジャンプ・ダッシュ回避のみを持つ
@@ -18,7 +18,13 @@ export default class PlayScene extends Phaser.Scene {
   create() {
     this.stage = STAGE1;
     this.cameras.main.setBackgroundColor(COLORS.background);
-    this.physics.world.setBounds(0, 0, this.stage.worldWidth, this.stage.worldHeight);
+    // 物理ワールドの下端は、床の穴に落下できるよう画面外まで広げておく
+    // （setCollideWorldBoundsがステージ高さちょうどで止めてしまうと、
+    // 「落下してミスになる」演出自体が起きなくなるため）。カメラの
+    // 境界は元のステージ高さのままにし、見た目のスクロール範囲は
+    // 変えない。
+    const FALL_MARGIN = 400;
+    this.physics.world.setBounds(0, 0, this.stage.worldWidth, this.stage.worldHeight + FALL_MARGIN);
     this.cameras.main.setBounds(0, 0, this.stage.worldWidth, this.stage.worldHeight);
 
     this.isGameOver = false; // クリア/リトライ演出中の入力ロック用
@@ -84,7 +90,8 @@ export default class PlayScene extends Phaser.Scene {
         fontSize: "13px",
         color: "#d4cfe0",
         backgroundColor: "rgba(20,18,26,0.7)",
-        padding: { x: 8, y: 4 }
+        padding: { x: 8, y: 4 },
+        resolution: TEXT_RESOLUTION
       })
       .setScrollFactor(0);
 
@@ -94,7 +101,8 @@ export default class PlayScene extends Phaser.Scene {
         fontSize: "36px",
         color: "#f5f3fa",
         backgroundColor: "rgba(14,12,19,0.85)",
-        padding: { x: 24, y: 16 }
+        padding: { x: 24, y: 16 },
+        resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
