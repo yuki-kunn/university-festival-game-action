@@ -11,6 +11,14 @@ new Phaser.Game({
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: "#14121a",
+  scale: {
+    // ブラウザウィンドウいっぱいに、960:540のアスペクト比を保ったまま
+    // 自動リサイズする。ウィンドウリサイズ時にも追従する。
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT
+  },
   physics: {
     default: "arcade",
     arcade: {
