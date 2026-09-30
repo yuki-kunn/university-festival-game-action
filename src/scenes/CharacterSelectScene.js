@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS } from "../config.js";
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, TEXT_RESOLUTION } from "../config.js";
 
 // ドット絵素材が未用意のため、キャラクターは色付きの四角形
 // プレースホルダーで表示する。素材が揃い次第、ここをスプライト表示に
@@ -16,7 +16,8 @@ export default class CharacterSelectScene extends Phaser.Scene {
       .text(GAME_WIDTH / 2, 60, "キャラクターを選んでください", {
         fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif",
         fontSize: "28px",
-        color: "#f5f3fa"
+        color: "#f5f3fa",
+        resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
@@ -47,7 +48,8 @@ export default class CharacterSelectScene extends Phaser.Scene {
       .text(0, 70, chara.name, {
         fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif",
         fontSize: "22px",
-        color: "#f5f3fa"
+        color: "#f5f3fa",
+        resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
@@ -56,7 +58,8 @@ export default class CharacterSelectScene extends Phaser.Scene {
         fontFamily: "sans-serif",
         fontSize: "12px",
         color: "#d4cfe0",
-        align: "center"
+        align: "center",
+        resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 

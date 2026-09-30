@@ -33,3 +33,11 @@ export const DASH = {
   cooldownMs: 500, // 再度ダッシュできるようになるまでの時間
   invincibleMs: 220 // ダッシュ開始からの無敵時間（durationMsより少し長め）
 };
+
+// テキストの描画解像度。Scale.FITでCSS表示サイズを拡大しても、canvasの
+// 内部描画バッファは論理解像度(GAME_WIDTH x GAME_HEIGHT)のままのため、
+// 特に高DPIディスプレイでテキストの輪郭が大きくぼやける。Phaserの
+// TextStyle.resolutionはTextオブジェクト単位でこれを補正できるため、
+// devicePixelRatioに応じた値を全テキストで共通利用する（3倍を上限とし、
+// 過度なメモリ/描画負荷を避ける）。
+export const TEXT_RESOLUTION = Math.min(window.devicePixelRatio || 1, 3);
