@@ -195,10 +195,27 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     }
 
     this.examinedIds.add(obj.id);
-    if (obj.hintKey) {
-      this.hints[obj.hintKey] = obj.hintValue;
+
+    // requiresForBackを持つオブジェクト（集合写真）は、その前提
+    // （木箱）を既に調べていれば「裏面」の説明とヒントを使う。
+    // 前提をまだ満たしていなければ、通常のexamineText（表面＝
+    // ミスリード側）だけを見せ、hintKeyは確定させない。
+    if (obj.requiresForBack) {
+      if (this.examinedIds.has(obj.requiresForBack)) {
+        if (obj.hintKey) {
+          this.hints[obj.hintKey] = obj.hintValue;
+        }
+        this.showExamineText(obj.examineBackText || obj.examineText);
+      } else {
+        this.showExamineText(obj.examineText);
+      }
+    } else {
+      if (obj.hintKey) {
+        this.hints[obj.hintKey] = obj.hintValue;
+      }
+      this.showExamineText(obj.examineText);
     }
-    this.showExamineText(obj.examineText);
+
     this.renderCurrentWall(); // 調査済み色に更新するため再描画
   }
 
