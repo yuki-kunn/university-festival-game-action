@@ -96,6 +96,13 @@ export default class ActionSceneBase extends Phaser.Scene {
     return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避`;
   }
 
+  // 右上のスコア表示欄の初期テキスト。nullを返すとスコア欄自体を
+  // 作らない（デフォルト）。コイン収集などスコア要素を持つサブクラス
+  // （例: NikoRushActionScene）でオーバーライドする。
+  getInitialScoreText() {
+    return null;
+  }
+
   createHud() {
     this.hudText = this.add
       .text(16, 16, this.getHudHintText(), {
@@ -107,6 +114,23 @@ export default class ActionSceneBase extends Phaser.Scene {
         resolution: TEXT_RESOLUTION
       })
       .setScrollFactor(0);
+
+    // スコア表示はコイン収集等、一部のジャンルでのみ使う任意要素。
+    // getInitialScoreText()がnull以外を返すサブクラスでのみ表示する。
+    const initialScoreText = this.getInitialScoreText();
+    if (initialScoreText !== null) {
+      this.scoreText = this.add
+        .text(GAME_WIDTH - 16, 16, initialScoreText, {
+          fontFamily: "sans-serif",
+          fontSize: "16px",
+          color: "#f5f3fa",
+          backgroundColor: "rgba(20,18,26,0.7)",
+          padding: { x: 10, y: 6 },
+          resolution: TEXT_RESOLUTION
+        })
+        .setOrigin(1, 0)
+        .setScrollFactor(0);
+    }
 
     this.messageText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, "", {

@@ -1,50 +1,57 @@
-import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_RESOLUTION } from "../config.js";
+import ActionSceneBase from "./ActionSceneBase.js";
+import { NIKO_STAGE1 } from "../stages/nikoStage1.js";
 
-// ニコ担当：爽快アクション（ハイテンションなキッズゲーマー向け。コイン
-// 収集＋高速スクロール＋ジャンプ主体でミスしにくくテンポの速い体験）。
-// 詳細な実装は別Issueで行う。現時点では準備中画面とタイトルへ戻る
-// 導線のみを用意する。
-export default class NikoRushActionScene extends Phaser.Scene {
+// ニコ担当：爽快アクション（ハイテンションなキッズゲーマー向け）。
+// 高速移動・ミスしにくい構成・コイン収集によるスコア演出が特徴。
+// クリア条件はゴール到達のみで、コインは取らなくてもクリアできる。
+const COIN_COLOR = 0xffd24c;
+const COIN_RADIUS = 10;
+
+export default class NikoRushActionScene extends ActionSceneBase {
   constructor() {
     super("NikoRushActionScene");
   }
 
-  create() {
-    this.cameras.main.setBackgroundColor(COLORS.background);
+  getStageData() {
+    return NIKO_STAGE1;
+  }
 
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, "ニコ｜爽快アクション", {
-        fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif",
-        fontSize: "28px",
-        color: "#f5f3fa",
-        resolution: TEXT_RESOLUTION
-      })
-      .setOrigin(0.5);
+  getHudHintText() {
+    return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避 / コインを集めよう！`;
+  }
 
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10, "現在製作中です", {
-        fontFamily: "sans-serif",
-        fontSize: "16px",
-        color: "#d4cfe0",
-        resolution: TEXT_RESOLUTION
-      })
-      .setOrigin(0.5);
+  getInitialScoreText() {
+    this.coinCount = 0;
+    return this.formatScoreText();
+  }
 
-    const backButton = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 60, "タイトルへ戻る", {
-        fontFamily: "sans-serif",
-        fontSize: "18px",
-        color: "#ffffff",
-        backgroundColor: "#4a3f66",
-        padding: { x: 20, y: 8 },
-        resolution: TEXT_RESOLUTION
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+  formatScoreText() {
+    const total = this.stage.coins.length;
+    return `コイン ${this.coinCount} / ${total}`;
+  }
 
-    backButton.on("pointerdown", () => {
-      this.scene.start("TitleScene");
+  createStageObjects() {
+    this.coinGroup = this.physics.add.staticGroup();
+
+    this.stage.coins.forEach(c => {
+      const coin = this.add.circle(c.x, c.y, COIN_RADIUS, COIN_COLOR);
+      coin.setStrokeStyle(2, 0xffffff, 0.6);
+      this.physics.add.existing(coin, true);
+      this.coinGroup.add(coin);
     });
+
+    this.physics.add.overlap(this.player, this.coinGroup, (player, coin) => {
+      this.collectCoin(coin);
+    });
+  }
+
+  collectCoin(coin) {
+    // staticGroupからの除去＋破棄。同一フレームでの二重取得を防ぐため、
+    // disableBody(true, true)でボディ無効化と非表示を同時に行う。
+    this.coinGroup.killAndHide(coin);
+    coin.body.enable = false;
+
+    this.coinCount += 1;
+    this.scoreText.setText(this.formatScoreText());
   }
 }

@@ -47,7 +47,10 @@ export const CHARACTERS = [
     id: "niko",
     name: "ニコ",
     color: COLORS.niko,
-    moveSpeed: 260,
+    // 爽快アクション担当として、常時スピード感のある操作感を出すため
+    // 他キャラ（190-220）より大幅に速くする。DASH.speed(640)に近づき
+    // すぎるとダッシュとの差が感じられなくなるため、その6割強に留める。
+    moveSpeed: 420,
     jumpPower: 440,
     sceneKey: "NikoRushActionScene",
     genreLabel: "爽快アクション"
