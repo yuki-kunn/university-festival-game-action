@@ -165,7 +165,7 @@ export const CHARACTERS = [
 export const DASH = {
   speed: 640, // ダッシュ中の水平移動速度（moveSpeedとは独立した固定値）
   durationMs: 180, // ダッシュが持続する時間
-  cooldownMs: 500, // 再度ダッシュできるようになるまでの時間
+  cooldownMs: 500, // 再度ダッシュできるようになるまでの時間（空中では、これとは別に着地するまで1回だけ）
   invincibleMs: 220 // ダッシュ開始からの無敵時間（durationMsより少し長め）
 };
 

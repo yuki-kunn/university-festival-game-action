@@ -92,6 +92,24 @@ async function runCase(chara) {
       assert(info.platforms > 0, "床が生成されていない");
       assert(!info.gameOver, "開始直後にゲームオーバーになっている");
 
+      // 空中ダッシュは着地するまでに1回だけ。着地すると再び使える
+      const dashRule = await page.evaluate(async () => {
+        const sc = window.game.scene.getScenes(true)[0];
+        sc.canDash = true;
+        sc.airDashUsed = false;
+        const first = sc.tryDash(false); // 空中1回目
+        sc.canDash = true; // クールダウンが明けた想定
+        const second = sc.tryDash(false); // 空中2回目 → 出ない
+        sc.canDash = true;
+        const ground = sc.tryDash(true); // 地上 → 出る
+        sc.airDashUsed = true;
+        await new Promise(r => setTimeout(r, 1200));
+        return { first, second, ground, resetOnLanding: sc.airDashUsed === false };
+      });
+      assert(dashRule.first && !dashRule.second, `空中ダッシュが1回に制限されていない: ${JSON.stringify(dashRule)}`);
+      assert(dashRule.ground, "地上ダッシュが出ない");
+      assert(dashRule.resetOnLanding, "着地しても空中ダッシュが回復しない");
+
       // 全ステージが起動でき、クリアで次のステージへ進み、最終ステージのクリアでタイトルへ戻る
       const startStage = idx =>
         page.evaluate(([key, id, i]) => window.game.scene.getScenes(true)[0].scene.start(key, { characterId: id, stageIndex: i }), [chara.sceneKey, chara.id, idx]);
