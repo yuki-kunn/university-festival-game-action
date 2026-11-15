@@ -66,9 +66,15 @@ export const STAGE_ART = {
 // 壁は 920x420、オブジェクトは各 width/height に合わせた2倍解像度。
 export const NINA_ART = {
   walls: ["north", "east", "south", "west"],
+  // 壁の画像のファイル名の前半（部屋ごと）。例: room_wall_north / room_wall_m_north
+  wallPrefixes: ["room_wall_", "room_wall_m_"],
   objects: [
+    // 1部屋目
     "door", "bookshelf", "note", "crystal", "photo", "photo_back", "clock", "scroll",
-    "box", "box_open", "drawer", "drawer_open"
+    "box", "box_open", "drawer", "drawer_open",
+    // 2部屋目「鏡の部屋」
+    "m_door", "m_clock", "m_clock_back", "m_books", "m_lamp", "m_lamp_back", "m_calendar",
+    "m_mirror", "m_desk", "m_board", "m_board_back", "m_safe", "m_safe_open"
   ],
   path: "assets/nina"
 };

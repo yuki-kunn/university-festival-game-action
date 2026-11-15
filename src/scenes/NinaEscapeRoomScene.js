@@ -1,8 +1,8 @@
 import Phaser from "phaser";
 import { addMuteButton, playBgm, playSe, stopBgm } from "../audio.js";
-import { returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
+import { proceedAfter, returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_RESOLUTION } from "../config.js";
-import { NINA_ESCAPE_ROOM } from "../stages/ninaEscapeRoom.js";
+import { NINA_ROOMS } from "../stages/ninaRooms.js";
 
 // ニナ担当：脱出系論理パズル（激ムズ）。一人称視点で、左右の矢印で
 // 東西南北4方向の壁を巡回しながらオブジェクトをクリックして調査し、
@@ -18,8 +18,10 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     super("NinaEscapeRoomScene");
   }
 
-  init() {
-    this.room = NINA_ESCAPE_ROOM;
+  init(data) {
+    this.roomIndex = data?.roomIndex ?? 0;
+    this.roomCount = NINA_ROOMS.length;
+    this.room = NINA_ROOMS[this.roomIndex];
     this.examinedIds = new Set();
     this.hints = {}; // hintKey -> hintValue（判明したもののみ格納）
     this.attemptsLeft = this.room.maxAttempts;
@@ -37,6 +39,15 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
         fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif",
         fontSize: "18px",
         color: "#f5f3fa",
+        resolution: TEXT_RESOLUTION
+      })
+      .setOrigin(0.5, 0);
+
+    this.add
+      .text(GAME_WIDTH / 2, 44, `ROOM ${this.roomIndex + 1}/${this.roomCount}  ${this.room.name}`, {
+        fontFamily: "sans-serif",
+        fontSize: "13px",
+        color: "#d4cfe0",
         resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5, 0);
@@ -65,7 +76,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
 
     // 壁の背景画像。面を切り替えるたびにテクスチャを差し替える。
     this.wallBackground = this.add
-      .image(WALL_CENTER_X, WALL_CENTER_Y, `room_wall_${this.getCurrentWall()}`)
+      .image(WALL_CENTER_X, WALL_CENTER_Y, this.getWallTextureKey())
       .setDisplaySize(WALL_WIDTH, WALL_HEIGHT);
     this.add.rectangle(WALL_CENTER_X, WALL_CENTER_Y, WALL_WIDTH, WALL_HEIGHT).setStrokeStyle(2, COLORS.accentSoft);
 
@@ -75,13 +86,17 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.createExamineBox();
     this.createCodeInputBox();
     addMuteButton(this);
-    playBgm(this, "mystery");
+    playBgm(this, this.room.bgm);
 
     this.renderCurrentWall();
   }
 
   formatAttemptsText() {
     return `残り試行回数 ${this.attemptsLeft}`;
+  }
+
+  getWallTextureKey() {
+    return `${this.room.wallPrefix}${this.getCurrentWall()}`;
   }
 
   getCurrentWall() {
@@ -123,20 +138,20 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.objectContainer.removeAll(true); // 既存の壁オブジェクトを破棄
 
     const wall = this.getCurrentWall();
-    this.wallBackground.setTexture(`room_wall_${wall}`);
+    this.wallBackground.setTexture(this.getWallTextureKey());
     this.wallLabelText.setText(this.room.wallLabels[wall]);
 
     const objectsOnWall = this.room.objects.filter(obj => obj.wall === wall);
     objectsOnWall.forEach(obj => this.createObjectSprite(obj));
   }
 
-  // 状態に応じた画像を選ぶ（木箱・引き出しは調査後に開いた絵、集合写真は裏面を見た後に裏の絵）
+  // 状態に応じた画像を選ぶ。openWhenExamined のオブジェクトは調査後に開いた絵（_open）、
+  // 「裏面・鏡に映した姿」を見たオブジェクトはその絵（_back）になる。
   getObjectTextureKey(obj) {
-    if (obj.id === "box" || obj.id === "drawer") {
-      return this.examinedIds.has(obj.id) ? `obj_${obj.id}_open` : `obj_${obj.id}`;
-    }
-    if (obj.id === "photo" && this.backRevealed.has("photo")) return "obj_photo_back";
-    return `obj_${obj.id}`;
+    const base = `obj_${obj.id}`;
+    if (obj.openWhenExamined && this.examinedIds.has(obj.id)) return `${base}_open`;
+    if (this.backRevealed.has(obj.id)) return `${base}_back`;
+    return base;
   }
 
   createObjectSprite(obj) {
@@ -226,7 +241,8 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
       return;
     }
 
-    if (obj.requires && !this.examinedIds.has(obj.requires)) {
+    const requires = [].concat(obj.requires ?? []);
+    if (!requires.every(id => this.examinedIds.has(id))) {
       playSe(this, "click");
       this.showExamineText(obj.requiresMessage || "まだ調べられないようだ。");
       return;
@@ -411,8 +427,16 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     stopBgm(this);
     playSe(this, "unlock");
     this.time.delayedCall(450, () => playSe(this, "clear"));
-    showResultBanner(this, "escape", { subText: "カチリ、と鍵の外れる音がした。", portraitKey: "select_nina" });
-    returnToTitleAfter(this, 3000);
+    const isLast = this.roomIndex >= this.roomCount - 1;
+    showResultBanner(this, "escape", {
+      subText: isLast ? `${this.room.escapeText}　全部屋脱出！` : this.room.escapeText,
+      portraitKey: "select_nina"
+    });
+    if (isLast) {
+      returnToTitleAfter(this, 3600);
+    } else {
+      proceedAfter(this, 3200, () => this.scene.restart({ characterId: "nina", roomIndex: this.roomIndex + 1 }));
+    }
   }
 
   handleEscapeFailure() {

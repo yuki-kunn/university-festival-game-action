@@ -37,7 +37,9 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preloadNinaArt() {
-    NINA_ART.walls.forEach(w => this.load.image(`room_wall_${w}`, `${NINA_ART.path}/room_wall_${w}.png`));
+    NINA_ART.wallPrefixes.forEach(prefix =>
+      NINA_ART.walls.forEach(w => this.load.image(`${prefix}${w}`, `${NINA_ART.path}/${prefix}${w}.png`))
+    );
     NINA_ART.objects.forEach(o => this.load.image(`obj_${o}`, `${NINA_ART.path}/obj_${o}.png`));
   }
 
