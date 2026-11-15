@@ -1,15 +1,18 @@
 import Phaser from "phaser";
+import { CHARACTERS } from "../config.js";
 
-// 現時点ではロードすべき外部アセットがない（ドット絵未用意のため仮の
-// 四角形プレースホルダーで進行）ので、BootSceneは即座にTitleSceneへ
-// 遷移するだけの土台。将来スプライトシート等を追加したら、この
-// preload()でロードする。
+// キャラ選択用の立ち絵をプリロードしてTitleSceneへ遷移する。
+// ゲーム内スプライトは未用意のため、仮の四角形で進行している。
 export default class BootScene extends Phaser.Scene {
   constructor() {
     super("BootScene");
   }
 
-  preload() {}
+  preload() {
+    CHARACTERS.forEach(chara => {
+      this.load.image(chara.portraitKey, chara.portraitPath);
+    });
+  }
 
   create() {
     this.scene.start("TitleScene");

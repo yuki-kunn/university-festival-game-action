@@ -27,6 +27,8 @@ export const COLORS = {
 export const CHARACTERS = [
   {
     id: "mc",
+    portraitKey: "select_mc",
+    portraitPath: "assets/characters/select_mc.png",
     name: "主人公",
     color: COLORS.mc,
     moveSpeed: 220,
@@ -36,6 +38,8 @@ export const CHARACTERS = [
   },
   {
     id: "marico",
+    portraitKey: "select_marico",
+    portraitPath: "assets/characters/select_marico.png",
     name: "マリコ",
     color: COLORS.marico,
     moveSpeed: 200,
@@ -45,6 +49,8 @@ export const CHARACTERS = [
   },
   {
     id: "niko",
+    portraitKey: "select_niko",
+    portraitPath: "assets/characters/select_niko.png",
     name: "ニコ",
     color: COLORS.niko,
     // 爽快アクション担当として、常時スピード感のある操作感を出すため
@@ -57,6 +63,8 @@ export const CHARACTERS = [
   },
   {
     id: "nina",
+    portraitKey: "select_nina",
+    portraitPath: "assets/characters/select_nina.png",
     name: "ニナ",
     color: COLORS.nina,
     moveSpeed: 190,
