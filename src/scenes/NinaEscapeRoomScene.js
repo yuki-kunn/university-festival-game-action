@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_RESOLUTION } from "../config.js";
 import { NINA_ESCAPE_ROOM } from "../stages/ninaEscapeRoom.js";
 
@@ -396,14 +397,16 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
   handleEscapeSuccess() {
     this.isFinished = true;
     this.codeInputBox.setVisible(false);
-    this.showExamineText("カチリ、と鍵の外れる音がした。――脱出成功！");
-    this.time.delayedCall(1600, () => this.scene.start("TitleScene"));
+    this.examineBox.setVisible(false);
+    showResultBanner(this, "escape", { subText: "カチリ、と鍵の外れる音がした。", portraitKey: "select_nina" });
+    returnToTitleAfter(this, 3000);
   }
 
   handleEscapeFailure() {
     this.isFinished = true;
     this.codeInputBox.setVisible(false);
-    this.showExamineText("……ダイヤルが固まってしまった。これ以上は開けられないようだ。");
-    this.time.delayedCall(1600, () => this.scene.start("TitleScene"));
+    this.examineBox.setVisible(false);
+    showResultBanner(this, "miss", { subText: "ダイヤルが固まってしまった。これ以上は開けられないようだ。" });
+    returnToTitleAfter(this, 2600);
   }
 }

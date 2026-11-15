@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, SPRITE, STAGE_ART, TEXT_RESOLUTION } from "../config.js";
 
 // 横スクロールアクション系シーンの共通基底クラス。移動・ジャンプ・
@@ -147,19 +148,6 @@ export default class ActionSceneBase extends Phaser.Scene {
         .setOrigin(1, 0)
         .setScrollFactor(0);
     }
-
-    this.messageText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, "", {
-        fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif",
-        fontSize: "36px",
-        color: "#f5f3fa",
-        backgroundColor: "rgba(14,12,19,0.85)",
-        padding: { x: 24, y: 16 },
-        resolution: TEXT_RESOLUTION
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setVisible(false);
   }
 
   setupInput() {
@@ -254,8 +242,8 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.isGameOver = true;
     this.player.body.setVelocity(0, 0);
     this.player.anims.play(`${this.character.id}_miss`, true);
-    this.showMessage(`ミス…（${reason}）`);
-    this.time.delayedCall(900, () => this.scene.restart({ characterId: this.characterId }));
+    showResultBanner(this, "miss", { subText: reason });
+    this.time.delayedCall(1100, () => this.scene.restart({ characterId: this.characterId }));
   }
 
   handleClear() {
@@ -263,11 +251,12 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.isGameOver = true;
     this.player.body.setVelocity(0, 0);
     this.player.anims.play(`${this.character.id}_idle`, true);
-    this.showMessage("ステージクリア！");
-    this.time.delayedCall(1200, () => this.scene.start("TitleScene"));
+    showResultBanner(this, "clear", { subText: this.getClearSubText(), portraitKey: this.character.portraitKey });
+    returnToTitleAfter(this, 2800);
   }
 
-  showMessage(text) {
-    this.messageText.setText(text).setVisible(true);
+  // クリア演出のバナー下に出す補足文。コイン数など、ジャンル固有の結果を返す。
+  getClearSubText() {
+    return "";
   }
 }

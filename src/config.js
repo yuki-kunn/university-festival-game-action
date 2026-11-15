@@ -67,6 +67,24 @@ export const NINA_ART = {
   path: "assets/nina"
 };
 
+// タイトル・キャラ選択・結果演出のUI画像（tools/make_ui_assets.py 等の出力）。
+export const UI_ART = {
+  path: "assets/ui",
+  images: {
+    bg_title: "bg_title.jpg",
+    bg_select: "bg_select.jpg",
+    title_logo: "title_logo.png",
+    ui_button: "ui_button.png",
+    ui_button_hover: "ui_button_hover.png",
+    card_frame: "card_frame.png",
+    card_frame_hover: "card_frame_hover.png",
+    banner_clear: "banner_clear.png",
+    banner_miss: "banner_miss.png",
+    banner_escape: "banner_escape.png",
+    spark: "spark.png"
+  }
+};
+
 export const CHARACTERS = [
   {
     id: "mc",
