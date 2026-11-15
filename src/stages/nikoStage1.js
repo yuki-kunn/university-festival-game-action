@@ -4,6 +4,8 @@
 // 絞っている。代わりにコインを多数配置し、取得数をスコアとして演出する
 // （取得はクリア条件に影響しない）。
 export const NIKO_STAGE1 = {
+  name: "図書室",
+  bgKey: "bg_library",
   worldWidth: 2600,
   worldHeight: 540,
 

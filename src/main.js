@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT } from "./config.js";
+import { GAME_WIDTH, GAME_HEIGHT, GRAVITY } from "./config.js";
 import BootScene from "./scenes/BootScene.js";
 import TitleScene from "./scenes/TitleScene.js";
 import CharacterSelectScene from "./scenes/CharacterSelectScene.js";
@@ -25,7 +25,7 @@ const game = new Phaser.Game({
   physics: {
     default: "arcade",
     arcade: {
-      gravity: { y: 900 },
+      gravity: { y: GRAVITY },
       debug: false
     }
   },

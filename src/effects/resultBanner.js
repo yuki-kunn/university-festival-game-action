@@ -73,14 +73,19 @@ export function showResultBanner(scene, kind, { subText = "", portraitKey = null
   }
 }
 
-// 演出のあとタイトルへ戻る。少し待ってからはクリックで早送りできる。
-export function returnToTitleAfter(scene, ms) {
+// 演出のあと、指定の処理（次のステージへ・タイトルへ等）に進む。
+// 少し待ってからはクリックで早送りできる。
+export function proceedAfter(scene, ms, action) {
   let done = false;
   const go = () => {
     if (done) return;
     done = true;
-    scene.scene.start("TitleScene");
+    action();
   };
   scene.time.delayedCall(ms, go);
   scene.time.delayedCall(900, () => scene.input.once("pointerdown", go));
+}
+
+export function returnToTitleAfter(scene, ms) {
+  proceedAfter(scene, ms, () => scene.scene.start("TitleScene"));
 }

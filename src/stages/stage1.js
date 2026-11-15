@@ -5,6 +5,8 @@
 //
 // 単位はピクセル。y=0が画面最上部、下に行くほど値が大きい。
 export const STAGE1 = {
+  name: "放課後の廊下",
+  bgKey: "bg_corridor",
   worldWidth: 2400,
   worldHeight: 540,
 
@@ -26,8 +28,8 @@ export const STAGE1 = {
   // 障害物（接触で即ミス）。静止した棘オブジェクトを想定。
   obstacles: [
     { x: 640, y: 470, width: 32, height: 32 },
-    { x: 1160, y: 470, width: 32, height: 32 },
-    { x: 1220, y: 470, width: 32, height: 32 },
+    { x: 1130, y: 470, width: 32, height: 32 },
+    { x: 1190, y: 470, width: 32, height: 32 },
     { x: 2000, y: 470, width: 32, height: 32 },
     { x: 2060, y: 470, width: 32, height: 32 }
   ],

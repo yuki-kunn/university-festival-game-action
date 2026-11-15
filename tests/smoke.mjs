@@ -91,6 +91,40 @@ async function runCase(chara) {
       assert(info.onGround, "開始後に床へ接地していない");
       assert(info.platforms > 0, "床が生成されていない");
       assert(!info.gameOver, "開始直後にゲームオーバーになっている");
+
+      // 全ステージが起動でき、クリアで次のステージへ進み、最終ステージのクリアでタイトルへ戻る
+      const startStage = idx =>
+        page.evaluate(([key, id, i]) => window.game.scene.getScenes(true)[0].scene.start(key, { characterId: id, stageIndex: i }), [chara.sceneKey, chara.id, idx]);
+      const waitStage = idx =>
+        page.waitForFunction(
+          i => {
+            const sc = window.game.scene.getScenes(true)[0];
+            return sc && sc.stageIndex === i && sc.player?.body.blocked.down && !sc.isGameOver;
+          },
+          idx,
+          { timeout: 15000 }
+        );
+      const skipBanner = async () => {
+        await page.waitForTimeout(1100); // 900ms以降はクリックで早送りできる
+        await click(GAME_W / 2, GAME_H / 2);
+      };
+      await startStage(1);
+      await waitStage(1);
+      await startStage(2);
+      await waitStage(2);
+      assert((await page.evaluate(() => window.game.scene.getScenes(true)[0].stageCount)) === 3, "ステージ数が3でない");
+
+      await startStage(0);
+      await waitStage(0);
+      await page.evaluate(() => window.game.scene.getScenes(true)[0].handleClear());
+      await skipBanner();
+      await waitStage(1); // ステージ1クリア → ステージ2
+
+      await startStage(2);
+      await waitStage(2);
+      await page.evaluate(() => window.game.scene.getScenes(true)[0].handleClear());
+      await skipBanner();
+      await page.waitForFunction(() => window.game.scene.isActive("TitleScene"), null, { timeout: 15000 }); // 最終クリア → タイトル
     }
     assert(errors.length === 0, `ブラウザエラー: ${errors.join(" | ")}`);
     console.log(`PASS ${chara.id}`);
