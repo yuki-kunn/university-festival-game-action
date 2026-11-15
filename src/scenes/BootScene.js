@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { CHARACTERS, NINA_ART, SPRITE, STAGE_ART } from "../config.js";
+import { CHARACTERS, NINA_ART, SPRITE, STAGE_ART, UI_ART } from "../config.js";
 
 // キャラ選択用の立ち絵をプリロードしてTitleSceneへ遷移する。
 // ゲーム内スプライトは未用意のため、仮の四角形で進行している。
@@ -11,6 +11,7 @@ export default class BootScene extends Phaser.Scene {
   preload() {
     this.preloadStageArt();
     this.preloadNinaArt();
+    this.preloadUiArt();
     CHARACTERS.forEach(chara => {
       this.load.image(chara.portraitKey, chara.portraitPath);
       if (chara.bgKey) {
@@ -23,6 +24,10 @@ export default class BootScene extends Phaser.Scene {
         });
       }
     });
+  }
+
+  preloadUiArt() {
+    Object.entries(UI_ART.images).forEach(([key, file]) => this.load.image(key, `${UI_ART.path}/${file}`));
   }
 
   preloadNinaArt() {

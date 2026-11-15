@@ -11,6 +11,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor(COLORS.background);
+    this.add.image(0, 0, "bg_select").setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
 
     this.add
       .text(GAME_WIDTH / 2, 60, "キャラクターを選んでください", {
@@ -37,9 +38,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
   createCharacterCard(chara, x, y, width, height) {
     const container = this.add.container(x, y);
 
-    const panel = this.add
-      .rectangle(0, 0, width, height, COLORS.panel)
-      .setStrokeStyle(2, COLORS.accentSoft);
+    const panel = this.add.image(0, 0, "card_frame").setDisplaySize(width, height);
 
     const portrait = this.add.image(0, 75, chara.portraitKey).setOrigin(0.5, 1);
     portrait.setScale(PORTRAIT_HEIGHT / portrait.height);
@@ -67,8 +66,14 @@ export default class CharacterSelectScene extends Phaser.Scene {
     container.setSize(width, height);
     container.setInteractive({ useHandCursor: true });
 
-    container.on("pointerover", () => panel.setStrokeStyle(3, COLORS.accent));
-    container.on("pointerout", () => panel.setStrokeStyle(2, COLORS.accentSoft));
+    container.on("pointerover", () => {
+      panel.setTexture("card_frame_hover");
+      container.setScale(1.03);
+    });
+    container.on("pointerout", () => {
+      panel.setTexture("card_frame");
+      container.setScale(1);
+    });
     container.on("pointerdown", () => {
       this.scene.start(chara.sceneKey, { characterId: chara.id });
     });

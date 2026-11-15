@@ -24,6 +24,10 @@ export default class NikoRushActionScene extends ActionSceneBase {
     return this.formatScoreText();
   }
 
+  getClearSubText() {
+    return this.formatScoreText();
+  }
+
   formatScoreText() {
     const total = this.stage.coins.length;
     return `コイン ${this.coinCount} / ${total}`;
