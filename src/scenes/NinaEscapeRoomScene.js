@@ -6,10 +6,10 @@ import { NINA_ESCAPE_ROOM } from "../stages/ninaEscapeRoom.js";
 // 東西南北4方向の壁を巡回しながらオブジェクトをクリックして調査し、
 // ヒントを集めて最終的にドアのコード入力で脱出する。移動・ジャンプ等
 // のアクション要素は持たないため、独立したシーンとして実装する。
-const OBJECT_COLOR_LOCKED_HINT = 0x6a5f48; // 未調査
-const OBJECT_COLOR_EXAMINED = 0x9c7ad6; // 調査済み
-const OBJECT_COLOR_EXIT = 0xd94f4f; // ドア
-const WALL_BG_COLOR = 0x1f1c28;
+const WALL_CENTER_X = GAME_WIDTH / 2;
+const WALL_CENTER_Y = GAME_HEIGHT / 2 + 10;
+const WALL_WIDTH = GAME_WIDTH - 40;
+const WALL_HEIGHT = 420;
 
 export default class NinaEscapeRoomScene extends Phaser.Scene {
   constructor() {
@@ -24,6 +24,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.isCodeInputOpen = false;
     this.isFinished = false;
     this.currentWallIndex = 0; // room.wallOrderの添字
+    this.backRevealed = new Set(); // 裏面を見たオブジェクト（集合写真）
   }
 
   create() {
@@ -60,10 +61,11 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
       })
       .setOrigin(0, 0);
 
-    // 壁の背景（部屋らしさを出す簡易矩形）。面を切り替えるたびに
-    // 奥行き感のためのグラデーション風の縁取りだけ描く。
-    this.wallBackground = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10, GAME_WIDTH - 40, 420, WALL_BG_COLOR);
-    this.wallBackground.setStrokeStyle(2, COLORS.accentSoft);
+    // 壁の背景画像。面を切り替えるたびにテクスチャを差し替える。
+    this.wallBackground = this.add
+      .image(WALL_CENTER_X, WALL_CENTER_Y, `room_wall_${this.getCurrentWall()}`)
+      .setDisplaySize(WALL_WIDTH, WALL_HEIGHT);
+    this.add.rectangle(WALL_CENTER_X, WALL_CENTER_Y, WALL_WIDTH, WALL_HEIGHT).setStrokeStyle(2, COLORS.accentSoft);
 
     this.objectContainer = this.add.container(0, 0);
 
@@ -116,36 +118,65 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.objectContainer.removeAll(true); // 既存の壁オブジェクトを破棄
 
     const wall = this.getCurrentWall();
+    this.wallBackground.setTexture(`room_wall_${wall}`);
     this.wallLabelText.setText(this.room.wallLabels[wall]);
 
     const objectsOnWall = this.room.objects.filter(obj => obj.wall === wall);
     objectsOnWall.forEach(obj => this.createObjectSprite(obj));
   }
 
+  // 状態に応じた画像を選ぶ（木箱・引き出しは調査後に開いた絵、集合写真は裏面を見た後に裏の絵）
+  getObjectTextureKey(obj) {
+    if (obj.id === "box" || obj.id === "drawer") {
+      return this.examinedIds.has(obj.id) ? `obj_${obj.id}_open` : `obj_${obj.id}`;
+    }
+    if (obj.id === "photo" && this.backRevealed.has("photo")) return "obj_photo_back";
+    return `obj_${obj.id}`;
+  }
+
   createObjectSprite(obj) {
-    const isExamined = this.examinedIds.has(obj.id);
-    const color = obj.isExit ? OBJECT_COLOR_EXIT : isExamined ? OBJECT_COLOR_EXAMINED : OBJECT_COLOR_LOCKED_HINT;
+    const image = this.add.image(obj.x, obj.y, this.getObjectTextureKey(obj)).setDisplaySize(obj.width, obj.height);
+    image.setInteractive({ useHandCursor: true });
 
-    const rect = this.add.rectangle(obj.x, obj.y, obj.width, obj.height, color);
-    rect.setStrokeStyle(2, COLORS.accentSoft);
-    rect.setInteractive({ useHandCursor: true });
-
+    // ラベルはホバー時のみ表示する
     const label = this.add
-      .text(obj.x, obj.y, obj.label, {
+      .text(obj.x, obj.y - obj.height / 2 - 14, obj.label, {
         fontFamily: "sans-serif",
         fontSize: "14px",
         color: "#f5f3fa",
-        align: "center",
-        wordWrap: { width: obj.width - 10 },
+        backgroundColor: "rgba(20,18,26,0.85)",
+        padding: { x: 8, y: 3 },
         resolution: TEXT_RESOLUTION
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setVisible(false);
 
-    rect.on("pointerdown", () => this.handleObjectClick(obj));
-    rect.on("pointerover", () => rect.setStrokeStyle(3, COLORS.accent));
-    rect.on("pointerout", () => rect.setStrokeStyle(2, COLORS.accentSoft));
+    image.on("pointerdown", () => this.handleObjectClick(obj));
+    image.on("pointerover", () => {
+      image.setScale(image.scaleX * 1.04, image.scaleY * 1.04);
+      label.setVisible(true);
+    });
+    image.on("pointerout", () => {
+      image.setDisplaySize(obj.width, obj.height);
+      label.setVisible(false);
+    });
 
-    this.objectContainer.add([rect, label]);
+    this.objectContainer.add([image, label]);
+
+    // 調査済みの印
+    if (this.examinedIds.has(obj.id) && !obj.isExit) {
+      const badge = this.add
+        .text(obj.x + obj.width / 2 - 6, obj.y - obj.height / 2 + 6, "✓", {
+          fontFamily: "sans-serif",
+          fontSize: "14px",
+          color: "#14121a",
+          backgroundColor: "#8cf0c0",
+          padding: { x: 5, y: 1 },
+          resolution: TEXT_RESOLUTION
+        })
+        .setOrigin(0.5);
+      this.objectContainer.add(badge);
+    }
   }
 
   createExamineBox() {
@@ -202,6 +233,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     // ミスリード側）だけを見せ、hintKeyは確定させない。
     if (obj.requiresForBack) {
       if (this.examinedIds.has(obj.requiresForBack)) {
+        this.backRevealed.add(obj.id);
         if (obj.hintKey) {
           this.hints[obj.hintKey] = obj.hintValue;
         }
@@ -227,7 +259,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
   createCodeInputBox() {
     this.codeInputBox = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2).setVisible(false);
 
-    const panel = this.add.rectangle(0, 0, 420, 220, COLORS.panel, 0.97);
+    const panel = this.add.rectangle(0, 25, 420, 270, COLORS.panel, 0.97);
     panel.setStrokeStyle(2, COLORS.accent);
 
     const title = this.add
@@ -312,6 +344,8 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     cancelButton.on("pointerdown", () => this.codeInputBox.setVisible(false));
 
     this.codeInputBox.add([panel, title, this.codeDisplayText, clearButton, submitButton, cancelButton]);
+    // 数字ボタンは先にコンテナへ追加済みなので、パネルを最背面に送る（前面だと数字が隠れる）
+    this.codeInputBox.sendToBack(panel);
   }
 
   openCodeInput() {

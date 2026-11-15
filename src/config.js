@@ -56,6 +56,17 @@ export const STAGE_ART = {
   bgParallax: 0.25
 };
 
+// ニナの脱出パズルの部屋の画像（tools/make_nina_assets.py の出力）。
+// 壁は 920x420、オブジェクトは各 width/height に合わせた2倍解像度。
+export const NINA_ART = {
+  walls: ["north", "east", "south", "west"],
+  objects: [
+    "door", "bookshelf", "note", "crystal", "photo", "photo_back", "clock", "scroll",
+    "box", "box_open", "drawer", "drawer_open"
+  ],
+  path: "assets/nina"
+};
+
 export const CHARACTERS = [
   {
     id: "mc",
