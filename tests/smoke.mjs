@@ -54,25 +54,65 @@ async function runCase(chara) {
     assert(bgm === chara.bgm, `BGMの割り当てが想定と違う: ${bgm} (想定 ${chara.bgm})`);
 
     if (chara.id === "nina") {
-      const result = await page.evaluate(() => {
-        const s = window.game.scene.getScenes(true)[0];
-        // 依存関係の順に全オブジェクトを調べ、集まったヒントから正解コードを組み立てる
-        for (const id of ["crystal", "bookshelf", "note", "box", "drawer", "photo"]) {
-          s.handleObjectClick(s.room.objects.find(o => o.id === id));
+      // 手がかりを集める: 前提を満たしたものから、全オブジェクトを何度か調べ直す
+      // （鏡のように「調べ直すと変わる」ものも含めて、ゲームと同じ操作で解く）
+      const solveRoom = () =>
+        page.evaluate(() => {
+          const sc = window.game.scene.getScenes(true)[0];
+          for (let pass = 0; pass < 4; pass++) for (const o of sc.room.objects) if (!o.isExit) sc.handleObjectClick(o);
+          sc.examineBox.setVisible(false);
+          const code = Object.keys(sc.hints).sort().map(k => sc.hints[k]).join("");
+          sc.openCodeInput();
+          for (const ch of "0000") sc.inputDigit(ch);
+          sc.submitCode();
+          const attemptsAfterWrong = sc.attemptsLeft;
+          sc.openCodeInput();
+          for (const ch of code) sc.inputDigit(ch);
+          sc.submitCode();
+          return { code, expected: sc.room.code, attemptsAfterWrong, finished: sc.isFinished };
+        });
+      const skipBanner = async () => {
+        await page.waitForTimeout(1100); // 900ms以降はクリックで早送りできる
+        await click(GAME_W / 2, GAME_H / 2);
+      };
+      const roomCount = await page.evaluate(() => window.game.scene.getScenes(true)[0].roomCount);
+      assert(roomCount === 2, `ニナの部屋数が2でない: ${roomCount}`);
+
+      for (let r = 0; r < roomCount; r++) {
+        const info = await page.evaluate(() => {
+          const sc = window.game.scene.getScenes(true)[0];
+          return { roomIndex: sc.roomIndex, bgm: window.game.registry.get("bgmKey"), expectedBgm: sc.room.bgm };
+        });
+        assert(info.roomIndex === r, `部屋の番号が想定と違う: ${info.roomIndex} (想定 ${r})`);
+        assert(info.bgm === info.expectedBgm, `部屋${r + 1}のBGMが違う: ${info.bgm}`);
+
+        if (r === 1) {
+          // 鏡の部屋: 鏡を調べる前は時計の手がかりが得られず、調べた後は得られる
+          const gating = await page.evaluate(() => {
+            const sc = window.game.scene.getScenes(true)[0];
+            const get = id => sc.room.objects.find(o => o.id === id);
+            sc.handleObjectClick(get("m_clock"));
+            const before = sc.hints.A;
+            sc.handleObjectClick(get("m_mirror"));
+            sc.handleObjectClick(get("m_clock"));
+            return { before, after: sc.hints.A, texture: sc.getObjectTextureKey(get("m_clock")) };
+          });
+          assert(gating.before === undefined, "鏡を調べる前に時計の手がかりが得られてしまう");
+          assert(gating.after === "3" && gating.texture === "obj_m_clock_back", `鏡を調べた後の時計が想定と違う: ${JSON.stringify(gating)}`);
         }
-        const code = ["A", "B", "C", "D"].map(k => s.hints[k]).join("");
-        s.openCodeInput();
-        for (const ch of "0000") s.inputDigit(ch);
-        s.submitCode();
-        const attemptsAfterWrong = s.attemptsLeft;
-        s.openCodeInput();
-        for (const ch of code) s.inputDigit(ch);
-        s.submitCode();
-        return { code, expected: s.room.code, attemptsAfterWrong, finished: s.isFinished };
-      });
-      assert(result.code === result.expected, `ヒントから作ったコード(${result.code})が正解(${result.expected})と一致しない`);
-      assert(result.attemptsAfterWrong === 2, "誤ったコードで残り試行回数が減らない");
-      assert(result.finished, "正解コードで脱出できない");
+
+        const result = await solveRoom();
+        assert(result.code === result.expected, `部屋${r + 1}: ヒントから作ったコード(${result.code})が正解(${result.expected})と一致しない`);
+        assert(result.attemptsAfterWrong === 2, `部屋${r + 1}: 誤ったコードで残り試行回数が減らない`);
+        assert(result.finished, `部屋${r + 1}: 正解コードで脱出できない`);
+        await skipBanner();
+        if (r < roomCount - 1) {
+          await page.waitForFunction(i => { const sc = window.game.scene.getScenes(true)[0]; return sc && sc.roomIndex === i && !sc.isFinished; }, r + 1, { timeout: 15000 });
+          await page.waitForTimeout(500);
+        } else {
+          await page.waitForFunction(() => window.game.scene.isActive("TitleScene"), null, { timeout: 15000 });
+        }
+      }
     } else {
       // 開始位置は床より高いので、着地するまで待つ（ヘッドレスは描画が遅い）
       await page

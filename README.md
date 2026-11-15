@@ -28,7 +28,7 @@ npx playwright install chromium   # 初回のみ
 npm test
 ```
 
-`npm test` はステージの到達可能性の検証（`tests/stages.test.mjs`）とブラウザでのスモークテストを順に実行します。PR と push では GitHub Actions が同じビルド・テストを実行し、develop / main への push 後は Cloudflare Pages へデプロイします（詳細は [CLAUDE.md](./CLAUDE.md)）。
+`npm test` はステージの到達可能性の検証（`tests/stages.test.mjs`）、ニナの部屋データの検証（`tests/rooms.test.mjs`）、ブラウザでのスモークテストを順に実行します。PR と push では GitHub Actions が同じビルド・テストを実行し、develop / main への push 後は Cloudflare Pages へデプロイします（詳細は [CLAUDE.md](./CLAUDE.md)）。
 
 ## 素材の再生成
 

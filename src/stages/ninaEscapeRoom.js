@@ -46,6 +46,10 @@
 // 最終コード: 本棚×張り紙「7」+ 水晶玉の計算結果「5」+
 //            集合写真裏面「4」+ 引き出し「9」= 7549
 export const NINA_ESCAPE_ROOM = {
+  name: "オカルト研究部の部室",
+  wallPrefix: "room_wall_", // 壁の画像: room_wall_north など
+  bgm: "mystery",
+  escapeText: "カチリ、と鍵の外れる音がした。扉の向こうに、もう一つの部室が見える……",
   code: "7549",
   maxAttempts: 3,
 
@@ -169,6 +173,7 @@ export const NINA_ESCAPE_ROOM = {
     },
     {
       id: "box",
+      openWhenExamined: true,
       label: "木箱",
       wall: "west",
       x: 240,
@@ -184,6 +189,7 @@ export const NINA_ESCAPE_ROOM = {
     },
     {
       id: "drawer",
+      openWhenExamined: true,
       label: "引き出し",
       wall: "west",
       x: 650,
