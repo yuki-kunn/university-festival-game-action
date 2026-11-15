@@ -52,6 +52,12 @@ export const STAGE_ART = {
     switch_off: "assets/stage/switch_off.png",
     switch_on: "assets/stage/switch_on.png"
   },
+  // ステージ2・3で使う背景（ステージ1の背景は CHARACTERS の bgKey で読み込む）
+  extraBackgrounds: {
+    bg_clubroom_night: "assets/stage/bg_clubroom_night.jpg",
+    bg_clubroom_day: "assets/stage/bg_clubroom_day.jpg",
+    bg_mirror: "assets/stage/bg_mirror.jpg"
+  },
   coin: { path: "assets/stage/coin.png", frameSize: 40, frameRate: 10 },
   bgParallax: 0.25
 };
@@ -84,6 +90,9 @@ export const UI_ART = {
     spark: "spark.png"
   }
 };
+
+// 物理の重力（px/s^2）。ステージの到達可能性テストでも使う。
+export const GRAVITY = 900;
 
 export const CHARACTERS = [
   {
@@ -166,4 +175,4 @@ export const DASH = {
 // TextStyle.resolutionはTextオブジェクト単位でこれを補正できるため、
 // devicePixelRatioに応じた値を全テキストで共通利用する（3倍を上限とし、
 // 過度なメモリ/描画負荷を避ける）。
-export const TEXT_RESOLUTION = Math.min(window.devicePixelRatio || 1, 3);
+export const TEXT_RESOLUTION = Math.min((typeof window !== "undefined" && window.devicePixelRatio) || 1, 3);

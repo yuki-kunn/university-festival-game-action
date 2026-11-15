@@ -1,7 +1,6 @@
 import ActionSceneBase from "./ActionSceneBase.js";
 import { playSe } from "../audio.js";
 import { STAGE_ART } from "../config.js";
-import { MARICO_STAGE1 } from "../stages/maricoStage1.js";
 
 // マリコ担当：パズル×アクション。既存の横スクロールアクション（移動・
 // ジャンプ・ダッシュ回避）に、スイッチ・ブロックによるパズル要素を
@@ -13,10 +12,6 @@ import { MARICO_STAGE1 } from "../stages/maricoStage1.js";
 export default class MaricoPuzzleActionScene extends ActionSceneBase {
   constructor() {
     super("MaricoPuzzleActionScene");
-  }
-
-  getStageData() {
-    return MARICO_STAGE1;
   }
 
   getHudHintText() {
@@ -44,19 +39,20 @@ export default class MaricoPuzzleActionScene extends ActionSceneBase {
       const rect = this.add.image(s.x, s.y, "switch_off").setDisplaySize(s.width, s.height);
       this.physics.add.existing(rect, true);
       rect.switchId = s.id;
-      this.switchSprites[s.id] = rect;
+      // 同じIDのスイッチは複数置ける（離れた場所から同じ仕掛けを切り替える）
+      this.switchSprites[s.id] = [...(this.switchSprites[s.id] ?? []), rect];
       this.switchGroup.add(rect);
     });
 
     // プレイヤーがスイッチに接触したらトグルする。overlapは接触している
     // 間ずっと呼ばれ続けるため、同一フレームでの多重トグルを防ぐには
     // 「接触が始まった瞬間」だけ反応させる必要がある。ここでは直前に
-    // 触れていたスイッチIDを記録し、離れるまで再トリガーしないことで
+    // 触れていたスイッチを記録し、離れるまで再トリガーしないことで
     // 対応する。
-    this.overlappingSwitchId = null;
+    this.overlappingSwitch = null;
     this.physics.add.overlap(this.player, this.switchGroup, (player, switchRect) => {
-      if (this.overlappingSwitchId === switchRect.switchId) return;
-      this.overlappingSwitchId = switchRect.switchId;
+      if (this.overlappingSwitch === switchRect) return;
+      this.overlappingSwitch = switchRect;
       this.toggleSwitch(switchRect.switchId);
     });
   }
@@ -65,7 +61,7 @@ export default class MaricoPuzzleActionScene extends ActionSceneBase {
     this.switchStates[id] = !this.switchStates[id];
     playSe(this, "switch");
     this.time.delayedCall(120, () => playSe(this, "block"));
-    this.switchSprites[id].setTexture(this.switchStates[id] ? "switch_on" : "switch_off");
+    this.switchSprites[id].forEach(sprite => sprite.setTexture(this.switchStates[id] ? "switch_on" : "switch_off"));
     this.updateBlockStates();
   }
 
@@ -97,13 +93,10 @@ export default class MaricoPuzzleActionScene extends ActionSceneBase {
     super.update();
     if (this.isGameOver) return;
 
-    // プレイヤーがどのスイッチとも重なっていなければ、次に接触した
-    // 瞬間に再トグルできるようリセットする。
-    if (this.overlappingSwitchId !== null) {
-      const stillOverlapping = this.physics.overlap(this.player, this.switchGroup);
-      if (!stillOverlapping) {
-        this.overlappingSwitchId = null;
-      }
+    // 最後に触れたスイッチから離れたら、次に接触した瞬間に再トグルできるよう
+    // リセットする。
+    if (this.overlappingSwitch !== null && !this.physics.overlap(this.player, this.overlappingSwitch)) {
+      this.overlappingSwitch = null;
     }
   }
 }

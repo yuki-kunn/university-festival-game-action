@@ -231,7 +231,8 @@ GitHub Actions（`.github/workflows/ci.yml`）で自動実行される。
 | PR（main / develop 向け） | ビルド + スモークテスト |
 | develop / main への push | 上記 + Cloudflare Pages へデプロイ（main=本番、develop=プレビュー） |
 
-- スモークテスト（`tests/smoke.mjs`）: 4キャラ全てのシーンがエラーなく起動すること、ニナの脱出パズルが正解コードで脱出できることを確認する
+- ステージ検証（`tests/stages.test.mjs`）: ブラウザを使わず、重力・移動速度・ジャンプ力・ダッシュの物理から、全ステージについて「ゴールに到達できる」「ダッシュ必須と宣言した穴はダッシュ無しでは越えられない」「コインが取れる位置にある」「マリコのパズルはスイッチ無しでは（ダッシュを1回使っても）解けない」を検証する。ステージを追加・変更したら必ず通す
+- スモークテスト（`tests/smoke.mjs`）: 4キャラ全てのシーンがエラーなく起動すること、全ステージが起動しクリアで次のステージへ進むこと、ニナの脱出パズルが正解コードで脱出できることを確認する
 - ローカル実行: `npm run build && npm test`（初回のみ `npx playwright install chromium`）
 - URLに `?debug` を付けると `window.game` が公開され、動作確認に使える
 - デプロイには GitHub の Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` が必要。未登録の間はデプロイのみスキップされる

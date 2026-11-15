@@ -43,6 +43,7 @@ export default class BootScene extends Phaser.Scene {
 
   preloadStageArt() {
     Object.entries(STAGE_ART.images).forEach(([key, path]) => this.load.image(key, path));
+    Object.entries(STAGE_ART.extraBackgrounds).forEach(([key, path]) => this.load.image(key, path));
     this.load.spritesheet("coin", STAGE_ART.coin.path, {
       frameWidth: STAGE_ART.coin.frameSize,
       frameHeight: STAGE_ART.coin.frameSize

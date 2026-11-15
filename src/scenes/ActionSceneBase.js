@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { addMuteButton, playBgm, playSe, stopBgm } from "../audio.js";
-import { returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
+import { proceedAfter, returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
+import { STAGES } from "../stages/index.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, SPRITE, STAGE_ART, TEXT_RESOLUTION } from "../config.js";
 
 // 横スクロールアクション系シーンの共通基底クラス。移動・ジャンプ・
@@ -12,6 +13,8 @@ export default class ActionSceneBase extends Phaser.Scene {
   init(data) {
     this.characterId = data.characterId;
     this.character = CHARACTERS.find(c => c.id === this.characterId) || CHARACTERS[0];
+    this.stageIndex = data.stageIndex ?? 0;
+    this.stageCount = STAGES[this.character.id].length;
   }
 
   create() {
@@ -50,9 +53,9 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
   }
 
-  // サブクラスで対象のステージデータ（stages/配下）を返す
+  // 現在のキャラ・ステージ番号に対応するステージデータ（stages/index.js）を返す
   getStageData() {
-    throw new Error("getStageData() must be implemented by subclass");
+    return STAGES[this.character.id][this.stageIndex];
   }
 
   // サブクラスでスイッチ等の追加ギミックを実装するためのフック。
@@ -62,7 +65,7 @@ export default class ActionSceneBase extends Phaser.Scene {
   // キャラ別の背景を、カメラより遅く動かして奥行きを出す。
   createBackground() {
     this.background = this.add
-      .tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, this.character.bgKey)
+      .tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, this.stage.bgKey ?? this.character.bgKey)
       .setOrigin(0)
       .setScrollFactor(0)
       .setDepth(-10);
@@ -133,6 +136,19 @@ export default class ActionSceneBase extends Phaser.Scene {
         padding: { x: 8, y: 4 },
         resolution: TEXT_RESOLUTION
       })
+      .setScrollFactor(0);
+
+    // ステージ番号と名前（画面上部中央）
+    this.stageLabel = this.add
+      .text(GAME_WIDTH / 2, 16, `STAGE ${this.stageIndex + 1}/${this.stageCount}  ${this.stage.name}`, {
+        fontFamily: "sans-serif",
+        fontSize: "14px",
+        color: "#f5f3fa",
+        backgroundColor: "rgba(20,18,26,0.7)",
+        padding: { x: 10, y: 4 },
+        resolution: TEXT_RESOLUTION
+      })
+      .setOrigin(0.5, 0)
       .setScrollFactor(0);
 
     // スコア表示はコイン収集等、一部のジャンルでのみ使う任意要素。
@@ -249,7 +265,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.player.anims.play(`${this.character.id}_miss`, true);
     playSe(this, "miss");
     showResultBanner(this, "miss", { subText: reason });
-    this.time.delayedCall(1100, () => this.scene.restart({ characterId: this.characterId }));
+    this.time.delayedCall(1100, () => this.scene.restart({ characterId: this.characterId, stageIndex: this.stageIndex }));
   }
 
   handleClear() {
@@ -259,8 +275,20 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.player.anims.play(`${this.character.id}_idle`, true);
     stopBgm(this);
     playSe(this, "clear");
-    showResultBanner(this, "clear", { subText: this.getClearSubText(), portraitKey: this.character.portraitKey });
-    returnToTitleAfter(this, 2800);
+    const isLast = this.stageIndex >= this.stageCount - 1;
+    const extra = this.getClearSubText();
+    const message = isLast ? "全ステージクリア！" : `次は STAGE ${this.stageIndex + 2}`;
+    showResultBanner(this, "clear", {
+      subText: extra ? `${message}　${extra}` : message,
+      portraitKey: this.character.portraitKey
+    });
+    if (isLast) {
+      returnToTitleAfter(this, 3200);
+    } else {
+      proceedAfter(this, 2600, () =>
+        this.scene.restart({ characterId: this.characterId, stageIndex: this.stageIndex + 1 })
+      );
+    }
   }
 
   // クリア演出のバナー下に出す補足文。コイン数など、ジャンル固有の結果を返す。

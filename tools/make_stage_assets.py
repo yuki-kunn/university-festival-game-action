@@ -4,7 +4,7 @@
   pip install pillow
   python3 tools/make_stage_assets.py SRC_DIR OUT_DIR
 
-SRC_DIR に corridor.png / broadcast_room.png / library.png（ノベルパートの背景。
+SRC_DIR に corridor / broadcast_room / library / clubroom_night / clubroom_day / mirror_closeup の各 .png（ノベルパートの背景。
 Google Drive 保管でリポジトリには含めない）を置く。OUT_DIR に出力する。
 部品は 2 倍解像度で描き、ゲーム側で 0.5 倍表示する。
 """
@@ -229,7 +229,10 @@ def main():
     switch(False).save(os.path.join(out, "switch_off.png"), optimize=True)
     switch(True).save(os.path.join(out, "switch_on.png"), optimize=True)
     # 元画像の明るさに合わせて暗さを変える（図書室は特に明るい）
-    for name, key, blend in [("corridor", "bg_corridor", 0.66), ("broadcast_room", "bg_broadcast", 0.6), ("library", "bg_library", 0.76)]:
+    for name, key, blend in [
+        ("corridor", "bg_corridor", 0.66), ("broadcast_room", "bg_broadcast", 0.6), ("library", "bg_library", 0.76),
+        ("clubroom_night", "bg_clubroom_night", 0.6), ("clubroom_day", "bg_clubroom_day", 0.74), ("mirror_closeup", "bg_mirror", 0.7)
+    ]:
         background(os.path.join(src, name + ".png"), os.path.join(out, key + ".jpg"), blend)
     for f in sorted(os.listdir(out)):
         print(f, os.path.getsize(os.path.join(out, f)) // 1024, "KB")
