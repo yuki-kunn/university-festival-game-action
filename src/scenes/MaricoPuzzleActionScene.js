@@ -1,5 +1,5 @@
 import ActionSceneBase from "./ActionSceneBase.js";
-import { COLORS } from "../config.js";
+import { STAGE_ART } from "../config.js";
 import { MARICO_STAGE1 } from "../stages/maricoStage1.js";
 
 // マリコ担当：パズル×アクション。既存の横スクロールアクション（移動・
@@ -8,9 +8,6 @@ import { MARICO_STAGE1 } from "../stages/maricoStage1.js";
 // ブロックを一括で切り替える。ブロックはスイッチON時に実体化する
 // タイプ（穴をふさぐ「橋」）と、OFF時に実体化するタイプ（道を塞ぐ
 // 「壁」）の両方を持てる。
-const SWITCH_COLOR_OFF = 0x6a5f48;
-const SWITCH_COLOR_ON = 0x8cf0c0;
-const BLOCK_COLOR = 0x9c7ad6;
 
 export default class MaricoPuzzleActionScene extends ActionSceneBase {
   constructor() {
@@ -43,8 +40,7 @@ export default class MaricoPuzzleActionScene extends ActionSceneBase {
     this.switchSprites = {};
 
     this.stage.switches.forEach(s => {
-      const rect = this.add.rectangle(s.x, s.y, s.width, s.height, SWITCH_COLOR_OFF);
-      rect.setStrokeStyle(2, COLORS.accentSoft);
+      const rect = this.add.image(s.x, s.y, "switch_off").setDisplaySize(s.width, s.height);
       this.physics.add.existing(rect, true);
       rect.switchId = s.id;
       this.switchSprites[s.id] = rect;
@@ -66,15 +62,15 @@ export default class MaricoPuzzleActionScene extends ActionSceneBase {
 
   toggleSwitch(id) {
     this.switchStates[id] = !this.switchStates[id];
-    this.switchSprites[id].setFillStyle(this.switchStates[id] ? SWITCH_COLOR_ON : SWITCH_COLOR_OFF);
+    this.switchSprites[id].setTexture(this.switchStates[id] ? "switch_on" : "switch_off");
     this.updateBlockStates();
   }
 
   createBlocks() {
     this.blockGroup = this.physics.add.staticGroup();
     this.blockObjects = this.stage.blocks.map(b => {
-      const rect = this.add.rectangle(b.x, b.y, b.width, b.height, BLOCK_COLOR);
-      rect.setStrokeStyle(2, COLORS.accent);
+      const rect = this.add.tileSprite(b.x, b.y, b.width, b.height, "tile_block");
+      rect.setTileScale(STAGE_ART.scale, STAGE_ART.scale);
       this.physics.add.existing(rect, true);
       this.blockGroup.add(rect);
       return { def: b, sprite: rect };

@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, SPRITE, TEXT_RESOLUTION } from "../config.js";
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, SPRITE, STAGE_ART, TEXT_RESOLUTION } from "../config.js";
 
 // 横スクロールアクション系シーンの共通基底クラス。移動・ジャンプ・
 // ダッシュ回避・HUD・ミス/クリア判定など、PlayScene（主人公）と
@@ -30,6 +30,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.canDash = true;
     this.facing = 1; // 1: 右向き, -1: 左向き
 
+    this.createBackground();
     this.createPlatforms();
     this.createObstacles();
     this.createGoal();
@@ -54,31 +55,40 @@ export default class ActionSceneBase extends Phaser.Scene {
   // デフォルトでは何もしない。
   createStageObjects() {}
 
+  // キャラ別の背景を、カメラより遅く動かして奥行きを出す。
+  createBackground() {
+    this.background = this.add
+      .tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, this.character.bgKey)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(-10);
+  }
+
   createPlatforms() {
     this.platformGroup = this.physics.add.staticGroup();
     this.stage.platforms.forEach(p => {
-      const rect = this.add.rectangle(p.x, p.y, p.width, p.height, COLORS.panel);
-      rect.setStrokeStyle(2, COLORS.accentSoft);
-      this.physics.add.existing(rect, true);
-      this.platformGroup.add(rect);
+      const tile = this.add.tileSprite(p.x, p.y, p.width, p.height, "tile_ground");
+      tile.setTileScale(STAGE_ART.scale, STAGE_ART.scale);
+      this.physics.add.existing(tile, true);
+      this.platformGroup.add(tile);
     });
   }
 
   createObstacles() {
     this.obstacleGroup = this.physics.add.staticGroup();
     this.stage.obstacles.forEach(o => {
-      const rect = this.add.rectangle(o.x, o.y, o.width, o.height, 0xd94f4f);
-      this.physics.add.existing(rect, true);
-      this.obstacleGroup.add(rect);
+      const spike = this.add.image(o.x, o.y, "spike").setDisplaySize(o.width, o.height);
+      this.physics.add.existing(spike, true);
+      this.obstacleGroup.add(spike);
     });
   }
 
   createGoal() {
     const g = this.stage.goal;
-    const rect = this.add.rectangle(g.x, g.y, g.width, g.height, COLORS.accent, 0.6);
-    rect.setStrokeStyle(2, COLORS.accent);
-    this.physics.add.existing(rect, true);
-    this.goalZone = rect;
+    const door = this.add.image(g.x, g.y, "goal").setDisplaySize(g.width, g.height);
+    this.physics.add.existing(door, true);
+    this.goalZone = door;
+    this.tweens.add({ targets: door, alpha: 0.75, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
   }
 
   createPlayer() {
@@ -161,6 +171,7 @@ export default class ActionSceneBase extends Phaser.Scene {
   }
 
   update() {
+    this.background.tilePositionX = this.cameras.main.scrollX * STAGE_ART.bgParallax;
     if (this.isGameOver) return;
 
     // 画面下へ落下したら即ミス

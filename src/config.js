@@ -40,6 +40,22 @@ export const SPRITE = {
   }
 };
 
+// ステージ部品の画像（tools/make_stage_assets.py の出力）。2倍解像度で
+// 描いてあり、表示は STAGE_ART.scale 倍。
+export const STAGE_ART = {
+  scale: 0.5,
+  images: {
+    tile_ground: "assets/stage/tile_ground.png",
+    tile_block: "assets/stage/tile_block.png",
+    spike: "assets/stage/spike.png",
+    goal: "assets/stage/goal.png",
+    switch_off: "assets/stage/switch_off.png",
+    switch_on: "assets/stage/switch_on.png"
+  },
+  coin: { path: "assets/stage/coin.png", frameSize: 40, frameRate: 10 },
+  bgParallax: 0.25
+};
+
 export const CHARACTERS = [
   {
     id: "mc",
@@ -47,6 +63,8 @@ export const CHARACTERS = [
     portraitPath: "assets/characters/select_mc.png",
     spriteKey: "mini_mc",
     spritePath: "assets/sprites/mini_mc.png",
+    bgKey: "bg_corridor",
+    bgPath: "assets/stage/bg_corridor.jpg",
     name: "主人公",
     color: COLORS.mc,
     moveSpeed: 220,
@@ -60,6 +78,8 @@ export const CHARACTERS = [
     portraitPath: "assets/characters/select_marico.png",
     spriteKey: "mini_marico",
     spritePath: "assets/sprites/mini_marico.png",
+    bgKey: "bg_broadcast",
+    bgPath: "assets/stage/bg_broadcast.jpg",
     name: "マリコ",
     color: COLORS.marico,
     moveSpeed: 200,
@@ -73,6 +93,8 @@ export const CHARACTERS = [
     portraitPath: "assets/characters/select_niko.png",
     spriteKey: "mini_niko",
     spritePath: "assets/sprites/mini_niko.png",
+    bgKey: "bg_library",
+    bgPath: "assets/stage/bg_library.jpg",
     name: "ニコ",
     color: COLORS.niko,
     // 爽快アクション担当として、常時スピード感のある操作感を出すため

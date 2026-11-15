@@ -4,8 +4,7 @@ import { NIKO_STAGE1 } from "../stages/nikoStage1.js";
 // ニコ担当：爽快アクション（ハイテンションなキッズゲーマー向け）。
 // 高速移動・ミスしにくい構成・コイン収集によるスコア演出が特徴。
 // クリア条件はゴール到達のみで、コインは取らなくてもクリアできる。
-const COIN_COLOR = 0xffd24c;
-const COIN_RADIUS = 10;
+const COIN_SIZE = 20;
 
 export default class NikoRushActionScene extends ActionSceneBase {
   constructor() {
@@ -34,8 +33,8 @@ export default class NikoRushActionScene extends ActionSceneBase {
     this.coinGroup = this.physics.add.staticGroup();
 
     this.stage.coins.forEach(c => {
-      const coin = this.add.circle(c.x, c.y, COIN_RADIUS, COIN_COLOR);
-      coin.setStrokeStyle(2, 0xffffff, 0.6);
+      const coin = this.add.sprite(c.x, c.y, "coin").setDisplaySize(COIN_SIZE, COIN_SIZE);
+      coin.play({ key: "coin_spin", startFrame: Math.floor(Math.random() * 6) });
       this.physics.add.existing(coin, true);
       this.coinGroup.add(coin);
     });
