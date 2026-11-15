@@ -20,6 +20,16 @@ npm install
 npm run dev
 ```
 
+## テスト
+
+```bash
+npm run build
+npx playwright install chromium   # 初回のみ
+npm test
+```
+
+PR と push では GitHub Actions が同じビルド・テストを実行し、develop / main への push 後は Cloudflare Pages へデプロイします（詳細は [CLAUDE.md](./CLAUDE.md)）。
+
 ## 開発ルール
 
 開発ルール・Git ワークフローは [CLAUDE.md](./CLAUDE.md) を参照してください。

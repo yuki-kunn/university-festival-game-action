@@ -8,7 +8,7 @@ import MaricoPuzzleActionScene from "./scenes/MaricoPuzzleActionScene.js";
 import NikoRushActionScene from "./scenes/NikoRushActionScene.js";
 import NinaEscapeRoomScene from "./scenes/NinaEscapeRoomScene.js";
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: "game-container",
   width: GAME_WIDTH,
@@ -39,3 +39,8 @@ new Phaser.Game({
     NinaEscapeRoomScene
   ]
 });
+
+// 動作確認・自動テスト用。URLに ?debug を付けたときだけ game を公開する。
+if (new URLSearchParams(window.location.search).has("debug")) {
+  window.game = game;
+}

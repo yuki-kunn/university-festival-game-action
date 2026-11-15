@@ -222,13 +222,30 @@ git checkout -b feature/{issue-number}-{title}
 
 ---
 
+## 🤖 CI/CD
+
+GitHub Actions（`.github/workflows/ci.yml`）で自動実行される。
+
+| トリガー | 内容 |
+|----------|------|
+| PR（main / develop 向け） | ビルド + スモークテスト |
+| develop / main への push | 上記 + Cloudflare Pages へデプロイ（main=本番、develop=プレビュー） |
+
+- スモークテスト（`tests/smoke.mjs`）: 4キャラ全てのシーンがエラーなく起動すること、ニナの脱出パズルが正解コードで脱出できることを確認する
+- ローカル実行: `npm run build && npm test`（初回のみ `npx playwright install chromium`）
+- URLに `?debug` を付けると `window.game` が公開され、動作確認に使える
+- デプロイには GitHub の Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` が必要。未登録の間はデプロイのみスキップされる
+- ステージやキャラを追加したら、`tests/smoke.mjs` にも追記する
+
+---
+
 ## ✅ チェックリスト（PR マージ前）
 
 PR をマージする前に、以下を確認
 
 - [ ] Issue 番号がブランチ名に含まれている
 - [ ] コミットメッセージが形式に従っている
-- [ ] テストが通っている
+- [ ] CI（ビルド・スモークテスト）が通っている
 - [ ] ドキュメントが更新されている（必要に応じて）
 - [ ] コードレビューが完了している
 
