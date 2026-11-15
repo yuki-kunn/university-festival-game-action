@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { addMuteButton, playBgm, playSe } from "../audio.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, TEXT_RESOLUTION } from "../config.js";
 
 // タイトル画面。夜の部室を背景に、ノベルパートと同じ見た目のロゴと
@@ -23,6 +24,8 @@ export default class TitleScene extends Phaser.Scene {
     this.createPortraits();
     this.createLogo();
     this.createStartButton();
+    addMuteButton(this);
+    playBgm(this, "daily");
   }
 
   // ゆっくり漂う光の粒
@@ -89,6 +92,7 @@ export default class TitleScene extends Phaser.Scene {
     this.tweens.add({ targets: group, alpha: 1, duration: 500, delay: 700 });
 
     button.on("pointerover", () => {
+      playSe(this, "hover");
       button.setTexture("ui_button_hover");
       label.setScale(1.04);
       button.setScale(button.scaleX * 1.04, button.scaleY * 1.04);
@@ -104,6 +108,7 @@ export default class TitleScene extends Phaser.Scene {
   startGame() {
     if (this.starting) return;
     this.starting = true;
+    playSe(this, "click");
     this.cameras.main.fadeOut(250, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => this.scene.start("CharacterSelectScene"));
   }

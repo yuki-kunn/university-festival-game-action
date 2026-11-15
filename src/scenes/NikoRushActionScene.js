@@ -1,4 +1,5 @@
 import ActionSceneBase from "./ActionSceneBase.js";
+import { playSe } from "../audio.js";
 import { NIKO_STAGE1 } from "../stages/nikoStage1.js";
 
 // ニコ担当：爽快アクション（ハイテンションなキッズゲーマー向け）。
@@ -55,6 +56,8 @@ export default class NikoRushActionScene extends ActionSceneBase {
     coin.body.enable = false;
 
     this.coinCount += 1;
+    // 連続で取るほど音が上がる
+    playSe(this, "coin", { rate: 1 + Math.min(0.6, (this.coinCount - 1) * 0.05) });
     this.scoreText.setText(this.formatScoreText());
   }
 }

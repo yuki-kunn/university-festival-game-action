@@ -9,10 +9,10 @@ const GAME_H = 540;
 const PORT = 4173;
 
 const CHARACTERS = [
-  { id: "mc", sceneKey: "PlayScene", cardX: 174 },
-  { id: "marico", sceneKey: "MaricoPuzzleActionScene", cardX: 378 },
-  { id: "niko", sceneKey: "NikoRushActionScene", cardX: 582 },
-  { id: "nina", sceneKey: "NinaEscapeRoomScene", cardX: 786 }
+  { id: "mc", sceneKey: "PlayScene", cardX: 174, bgm: "mystery" },
+  { id: "marico", sceneKey: "MaricoPuzzleActionScene", cardX: 378, bgm: "tension" },
+  { id: "niko", sceneKey: "NikoRushActionScene", cardX: 582, bgm: "climax" },
+  { id: "nina", sceneKey: "NinaEscapeRoomScene", cardX: 786, bgm: "mystery" }
 ];
 
 const server = await preview({ preview: { port: PORT, strictPort: true, open: false } });
@@ -49,6 +49,9 @@ async function runCase(chara) {
     await clickUntil(GAME_W / 2, GAME_H / 2 + 60, "CharacterSelectScene"); // はじめる
     await clickUntil(chara.cardX, GAME_H / 2 + 20, chara.sceneKey); // キャラカード
     await page.waitForTimeout(500);
+
+    const bgm = await page.evaluate(() => window.game.registry.get("bgmKey"));
+    assert(bgm === chara.bgm, `BGMの割り当てが想定と違う: ${bgm} (想定 ${chara.bgm})`);
 
     if (chara.id === "nina") {
       const result = await page.evaluate(() => {

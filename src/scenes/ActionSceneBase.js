@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { addMuteButton, playBgm, playSe, stopBgm } from "../audio.js";
 import { returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, SPRITE, STAGE_ART, TEXT_RESOLUTION } from "../config.js";
 
@@ -39,6 +40,8 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.createStageObjects(); // サブクラスでギミックを追加するフック
     this.createHud();
     this.setupInput();
+    addMuteButton(this);
+    playBgm(this, this.character.bgmKey);
 
     this.physics.add.collider(this.player, this.platformGroup);
     this.physics.add.overlap(this.player, this.obstacleGroup, () => this.handleMiss("障害物に接触"));
@@ -188,6 +191,7 @@ export default class ActionSceneBase extends Phaser.Scene {
 
     const onGround = this.player.body.blocked.down || this.player.body.touching.down;
     if (jumpPressed && onGround) {
+      playSe(this, "jump");
       this.player.body.setVelocityY(-this.character.jumpPower);
     }
 
@@ -211,6 +215,7 @@ export default class ActionSceneBase extends Phaser.Scene {
   }
 
   startDash() {
+    playSe(this, "dash");
     this.isDashing = true;
     this.canDash = false;
     this.isInvincible = true;
@@ -242,6 +247,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.isGameOver = true;
     this.player.body.setVelocity(0, 0);
     this.player.anims.play(`${this.character.id}_miss`, true);
+    playSe(this, "miss");
     showResultBanner(this, "miss", { subText: reason });
     this.time.delayedCall(1100, () => this.scene.restart({ characterId: this.characterId }));
   }
@@ -251,6 +257,8 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.isGameOver = true;
     this.player.body.setVelocity(0, 0);
     this.player.anims.play(`${this.character.id}_idle`, true);
+    stopBgm(this);
+    playSe(this, "clear");
     showResultBanner(this, "clear", { subText: this.getClearSubText(), portraitKey: this.character.portraitKey });
     returnToTitleAfter(this, 2800);
   }
