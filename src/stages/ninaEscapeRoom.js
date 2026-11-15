@@ -156,7 +156,7 @@ export const NINA_ESCAPE_ROOM = {
       label: "掛け軸",
       wall: "south",
       x: 420,
-      y: 400,
+      y: 290,
       width: 150,
       height: 110,
       requires: null,
