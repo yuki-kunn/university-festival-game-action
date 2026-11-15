@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { applyMutePreference, preloadAudio } from "../audio.js";
 import { CHARACTERS, NINA_ART, SPRITE, STAGE_ART, UI_ART } from "../config.js";
 
 // キャラ選択用の立ち絵をプリロードしてTitleSceneへ遷移する。
@@ -9,6 +10,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    this.preloadAudio();
     this.preloadStageArt();
     this.preloadNinaArt();
     this.preloadUiArt();
@@ -24,6 +26,10 @@ export default class BootScene extends Phaser.Scene {
         });
       }
     });
+  }
+
+  preloadAudio() {
+    preloadAudio(this);
   }
 
   preloadUiArt() {
@@ -64,6 +70,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    applyMutePreference(this.game);
     this.createAnimations();
     this.scene.start("TitleScene");
   }

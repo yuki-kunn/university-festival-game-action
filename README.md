@@ -41,6 +41,8 @@ PR と push では GitHub Actions が同じビルド・テストを実行し、d
 | ステージ部品・背景（`public/assets/stage`） | `tools/make_stage_assets.py SRC_DIR OUT_DIR` |
 | ニナの部屋（`public/assets/nina`） | `tools/make_nina_assets.py OUT_DIR` |
 | タイトル・選択画面・結果演出（`public/assets/ui`） | `tools/make_ui_assets.py SRC_DIR OUT_DIR` |
+| BGM（`public/assets/audio/bgm`） | `tools/prep_bgm.py SRC_DIR OUT_DIR`（要 numpy / lameenc / miniaudio） |
+| 効果音（`public/assets/audio/se`） | `tools/make_se.py OUT_DIR`（要 numpy / lameenc。合成なので元素材なし） |
 | タイトルロゴ（`public/assets/ui/title_logo.png`） | `node tools/render_title_logo.mjs OUT_PNG`（要ネットワーク） |
 
 ## 開発ルール

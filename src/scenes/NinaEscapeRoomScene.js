@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { addMuteButton, playBgm, playSe, stopBgm } from "../audio.js";
 import { returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_RESOLUTION } from "../config.js";
 import { NINA_ESCAPE_ROOM } from "../stages/ninaEscapeRoom.js";
@@ -73,6 +74,8 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.createArrowButtons();
     this.createExamineBox();
     this.createCodeInputBox();
+    addMuteButton(this);
+    playBgm(this, "mystery");
 
     this.renderCurrentWall();
   }
@@ -112,6 +115,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     if (this.isFinished) return;
     const wallCount = this.room.wallOrder.length;
     this.currentWallIndex = (this.currentWallIndex + direction + wallCount) % wallCount;
+    playSe(this, "turn");
     this.renderCurrentWall();
   }
 
@@ -217,16 +221,19 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     if (this.isFinished) return;
 
     if (obj.isExit) {
+      playSe(this, "click");
       this.openCodeInput();
       return;
     }
 
     if (obj.requires && !this.examinedIds.has(obj.requires)) {
+      playSe(this, "click");
       this.showExamineText(obj.requiresMessage || "まだ調べられないようだ。");
       return;
     }
 
     this.examinedIds.add(obj.id);
+    playSe(this, "examine");
 
     // requiresForBackを持つオブジェクト（集合写真）は、その前提
     // （木箱）を既に調べていれば「裏面」の説明とヒントを使う。
@@ -358,6 +365,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
   inputDigit(digit) {
     if (this.codeDigits.length >= 4) return;
     this.codeDigits.push(digit);
+    playSe(this, "key");
     this.updateCodeDisplay();
   }
 
@@ -385,6 +393,8 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.attemptsText.setText(this.formatAttemptsText());
     this.clearCodeInput();
 
+    playSe(this, "wrong");
+
     if (this.attemptsLeft <= 0) {
       this.handleEscapeFailure();
       return;
@@ -398,6 +408,9 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.isFinished = true;
     this.codeInputBox.setVisible(false);
     this.examineBox.setVisible(false);
+    stopBgm(this);
+    playSe(this, "unlock");
+    this.time.delayedCall(450, () => playSe(this, "clear"));
     showResultBanner(this, "escape", { subText: "カチリ、と鍵の外れる音がした。", portraitKey: "select_nina" });
     returnToTitleAfter(this, 3000);
   }
@@ -406,6 +419,8 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.isFinished = true;
     this.codeInputBox.setVisible(false);
     this.examineBox.setVisible(false);
+    stopBgm(this);
+    playSe(this, "miss");
     showResultBanner(this, "miss", { subText: "ダイヤルが固まってしまった。これ以上は開けられないようだ。" });
     returnToTitleAfter(this, 2600);
   }

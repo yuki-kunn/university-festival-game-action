@@ -1,4 +1,5 @@
 import ActionSceneBase from "./ActionSceneBase.js";
+import { playSe } from "../audio.js";
 import { STAGE_ART } from "../config.js";
 import { MARICO_STAGE1 } from "../stages/maricoStage1.js";
 
@@ -62,6 +63,8 @@ export default class MaricoPuzzleActionScene extends ActionSceneBase {
 
   toggleSwitch(id) {
     this.switchStates[id] = !this.switchStates[id];
+    playSe(this, "switch");
+    this.time.delayedCall(120, () => playSe(this, "block"));
     this.switchSprites[id].setTexture(this.switchStates[id] ? "switch_on" : "switch_off");
     this.updateBlockStates();
   }

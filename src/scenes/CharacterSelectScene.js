@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { addMuteButton, playBgm, playSe } from "../audio.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, TEXT_RESOLUTION } from "../config.js";
 
 // カードにはノベルパートの立ち絵（BootSceneでプリロード）を表示する。
@@ -21,6 +22,9 @@ export default class CharacterSelectScene extends Phaser.Scene {
         resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5);
+
+    addMuteButton(this);
+    playBgm(this, "daily");
 
     const cardWidth = 180;
     const cardHeight = 330;
@@ -67,6 +71,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
     container.setInteractive({ useHandCursor: true });
 
     container.on("pointerover", () => {
+      playSe(this, "hover");
       panel.setTexture("card_frame_hover");
       container.setScale(1.03);
     });
@@ -75,6 +80,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
       container.setScale(1);
     });
     container.on("pointerdown", () => {
+      playSe(this, "click");
       this.scene.start(chara.sceneKey, { characterId: chara.id });
     });
 
