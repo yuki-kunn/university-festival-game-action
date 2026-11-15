@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, TEXT_RESOLUTION } from "../config.js";
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, SPRITE, TEXT_RESOLUTION } from "../config.js";
 
 // 横スクロールアクション系シーンの共通基底クラス。移動・ジャンプ・
 // ダッシュ回避・HUD・ミス/クリア判定など、PlayScene（主人公）と
@@ -83,9 +83,15 @@ export default class ActionSceneBase extends Phaser.Scene {
 
   createPlayer() {
     const start = this.stage.playerStart;
-    // 仮スプライト（色付き四角形）。将来ドット絵に差し替える。
-    this.player = this.add.rectangle(start.x, start.y, 36, 56, this.character.color);
+    this.player = this.add.sprite(start.x, start.y, this.character.spriteKey).setScale(SPRITE.scale).setDepth(10);
     this.physics.add.existing(this.player);
+    // 当たり判定は従来どおり 36x56。コマ内の足元（下端から4px上）に合わせる。
+    // setSize/setOffsetは拡大前のコマ座標で指定する。
+    const bodyW = 36 / SPRITE.scale;
+    const bodyH = 56 / SPRITE.scale;
+    this.player.body.setSize(bodyW, bodyH);
+    this.player.body.setOffset((SPRITE.frameWidth - bodyW) / 2, 140 - bodyH);
+    this.player.play(`${this.character.id}_idle`);
     this.player.body.setCollideWorldBounds(true);
     this.player.body.setMaxVelocity(DASH.speed, 1200);
   }
@@ -188,7 +194,21 @@ export default class ActionSceneBase extends Phaser.Scene {
 
     if (dashPressed && this.canDash) {
       this.startDash();
+      return;
     }
+
+    this.updateAnimation(left || right, onGround);
+  }
+
+  updateAnimation(moving, onGround) {
+    this.player.setFlipX(this.facing < 0);
+    let name = "idle";
+    if (!onGround) {
+      name = this.player.body.velocity.y < 0 ? "jump_up" : "jump_down";
+    } else if (moving) {
+      name = "run";
+    }
+    this.player.anims.play(`${this.character.id}_${name}`, true);
   }
 
   startDash() {
@@ -199,6 +219,8 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.player.body.setVelocityY(0);
     this.player.body.setAllowGravity(false);
     this.player.setAlpha(0.5);
+    this.player.setFlipX(this.facing < 0);
+    this.player.anims.play(`${this.character.id}_dash`, true);
 
     this.time.delayedCall(DASH.durationMs, () => {
       this.isDashing = false;
@@ -220,6 +242,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     if (this.isGameOver || this.isInvincible) return;
     this.isGameOver = true;
     this.player.body.setVelocity(0, 0);
+    this.player.anims.play(`${this.character.id}_miss`, true);
     this.showMessage(`ミス…（${reason}）`);
     this.time.delayedCall(900, () => this.scene.restart({ characterId: this.characterId }));
   }
@@ -228,6 +251,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     if (this.isGameOver) return;
     this.isGameOver = true;
     this.player.body.setVelocity(0, 0);
+    this.player.anims.play(`${this.character.id}_idle`, true);
     this.showMessage("ステージクリア！");
     this.time.delayedCall(1200, () => this.scene.start("TitleScene"));
   }

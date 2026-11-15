@@ -24,11 +24,29 @@ export const COLORS = {
 // 遷移先シーンキー、genreLabelがキャラ選択画面に表示する説明文。
 // moveSpeed/jumpPowerは横スクロールアクション系（主人公・マリコ）専用
 // のパラメータで、ニコ・ニナのシーンでは参照しない。
+// ミニスプライトのシート仕様（tools/make_mini_sprites.py の出力に対応）。
+// 1コマ 112x144 を横に13枚。表示は SPRITE.scale 倍。
+export const SPRITE = {
+  frameWidth: 112,
+  frameHeight: 144,
+  scale: 0.5,
+  anims: {
+    idle: { start: 0, end: 1, frameRate: 2, repeat: -1 },
+    run: { start: 2, end: 7, frameRate: 12, repeat: -1 },
+    jump_up: { start: 8, end: 8, frameRate: 1, repeat: -1 },
+    jump_down: { start: 9, end: 9, frameRate: 1, repeat: -1 },
+    dash: { start: 10, end: 10, frameRate: 1, repeat: -1 },
+    miss: { start: 11, end: 12, frameRate: 8, repeat: 0 }
+  }
+};
+
 export const CHARACTERS = [
   {
     id: "mc",
     portraitKey: "select_mc",
     portraitPath: "assets/characters/select_mc.png",
+    spriteKey: "mini_mc",
+    spritePath: "assets/sprites/mini_mc.png",
     name: "主人公",
     color: COLORS.mc,
     moveSpeed: 220,
@@ -40,6 +58,8 @@ export const CHARACTERS = [
     id: "marico",
     portraitKey: "select_marico",
     portraitPath: "assets/characters/select_marico.png",
+    spriteKey: "mini_marico",
+    spritePath: "assets/sprites/mini_marico.png",
     name: "マリコ",
     color: COLORS.marico,
     moveSpeed: 200,
@@ -51,6 +71,8 @@ export const CHARACTERS = [
     id: "niko",
     portraitKey: "select_niko",
     portraitPath: "assets/characters/select_niko.png",
+    spriteKey: "mini_niko",
+    spritePath: "assets/sprites/mini_niko.png",
     name: "ニコ",
     color: COLORS.niko,
     // 爽快アクション担当として、常時スピード感のある操作感を出すため
