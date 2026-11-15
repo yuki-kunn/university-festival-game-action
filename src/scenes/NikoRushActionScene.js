@@ -12,7 +12,7 @@ export default class NikoRushActionScene extends ActionSceneBase {
   }
 
   getHudHintText() {
-    return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避 / コインを集めよう！`;
+    return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避（空中は1回） / コインを集めよう！`;
   }
 
   getInitialScoreText() {

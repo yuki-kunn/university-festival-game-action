@@ -15,7 +15,7 @@ export default class MaricoPuzzleActionScene extends ActionSceneBase {
   }
 
   getHudHintText() {
-    return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避 / スイッチに触れて道を開こう`;
+    return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避（空中は1回） / スイッチに触れて道を開こう`;
   }
 
   createStageObjects() {

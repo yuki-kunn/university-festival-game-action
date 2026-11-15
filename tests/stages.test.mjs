@@ -38,7 +38,8 @@ function simulateFlat(chara, dashTimes) {
   }
 }
 
-// ダッシュ1回で稼げる最大の追加距離（もっとも有利なタイミング）
+// ダッシュ1回で稼げる最大の追加距離（もっとも有利なタイミング）。空中ダッシュは着地までに1回だけという
+// ゲームのルール（ActionSceneBase.tryDash）が前提で、2回目以降は考えない。
 const dashBonusCache = new Map();
 function maxDashBonus(chara) {
   if (!dashBonusCache.has(chara.id)) {

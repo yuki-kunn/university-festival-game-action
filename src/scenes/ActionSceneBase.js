@@ -33,6 +33,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.isDashing = false;
     this.isInvincible = false;
     this.canDash = true;
+    this.airDashUsed = false; // 空中ダッシュは着地するまでに1回だけ
     this.facing = 1; // 1: 右向き, -1: 左向き
 
     this.createBackground();
@@ -116,7 +117,7 @@ export default class ActionSceneBase extends Phaser.Scene {
   // HUDの操作ガイド文言。サブクラスでオーバーライドして、パズル操作等
   // 固有の説明を追加できる。
   getHudHintText() {
-    return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避`;
+    return `${this.character.name}｜←→移動 / スペース ジャンプ / Shift ダッシュ回避（空中は1回）`;
   }
 
   // 右上のスコア表示欄の初期テキスト。nullを返すとスコア欄自体を
@@ -206,15 +207,13 @@ export default class ActionSceneBase extends Phaser.Scene {
     }
 
     const onGround = this.player.body.blocked.down || this.player.body.touching.down;
+    if (onGround) this.airDashUsed = false;
     if (jumpPressed && onGround) {
       playSe(this, "jump");
       this.player.body.setVelocityY(-this.character.jumpPower);
     }
 
-    if (dashPressed && this.canDash) {
-      this.startDash();
-      return;
-    }
+    if (dashPressed && this.tryDash(onGround)) return;
 
     this.updateAnimation(left || right, onGround);
   }
@@ -228,6 +227,18 @@ export default class ActionSceneBase extends Phaser.Scene {
       name = "run";
     }
     this.player.anims.play(`${this.character.id}_${name}`, true);
+  }
+
+  // ダッシュを試みる。クールダウン中、または空中で既にダッシュを使った場合は出ない。
+  // 空中ダッシュを1回に制限するのは、連続ダッシュで穴やパズルを飛ばせないようにするため。
+  tryDash(onGround) {
+    if (!this.canDash) return false;
+    if (!onGround) {
+      if (this.airDashUsed) return false;
+      this.airDashUsed = true;
+    }
+    this.startDash();
+    return true;
   }
 
   startDash() {
