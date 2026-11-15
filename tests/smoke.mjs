@@ -37,10 +37,17 @@ async function runCase(chara) {
     const box = await (await page.$("canvas")).boundingBox();
     const click = (gx, gy) => page.mouse.click(box.x + (gx / GAME_W) * box.width, box.y + (gy / GAME_H) * box.height);
 
-    await click(GAME_W / 2, GAME_H / 2 + 60); // はじめる
-    await page.waitForFunction(() => window.game.scene.isActive("CharacterSelectScene"), null, { timeout: 5000 });
-    await click(chara.cardX, GAME_H / 2 + 20); // キャラカード
-    await page.waitForFunction(key => window.game.scene.isActive(key), chara.sceneKey, { timeout: 5000 });
+    // シーン表示直後はクリックを取りこぼすことがあるため、切り替わるまで再クリックする
+    const clickUntil = async (gx, gy, key) => {
+      for (let i = 0; i < 12; i++) {
+        await click(gx, gy);
+        await page.waitForTimeout(700);
+        if (await page.evaluate(k => window.game.scene.isActive(k), key)) return;
+      }
+      throw new Error(`シーンが起動しない: ${key}`);
+    };
+    await clickUntil(GAME_W / 2, GAME_H / 2 + 60, "CharacterSelectScene"); // はじめる
+    await clickUntil(chara.cardX, GAME_H / 2 + 20, chara.sceneKey); // キャラカード
     await page.waitForTimeout(500);
 
     if (chara.id === "nina") {
