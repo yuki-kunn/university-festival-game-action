@@ -40,6 +40,7 @@ npm test
 | ミニスプライト（`public/assets/sprites`） | `tools/make_mini_sprites.py SRC_DIR OUT_DIR` |
 | ステージ部品・背景（`public/assets/stage`） | `tools/make_stage_assets.py SRC_DIR OUT_DIR` |
 | ニナの部屋（`public/assets/nina`） | `tools/make_nina_assets.py OUT_DIR` |
+| ニナの2部屋目「鏡の部屋」（`public/assets/nina`、`*_m_*`） | `tools/make_nina_room2_assets.py OUT_DIR` |
 | タイトル・選択画面・結果演出（`public/assets/ui`） | `tools/make_ui_assets.py SRC_DIR OUT_DIR` |
 | BGM（`public/assets/audio/bgm`） | `tools/prep_bgm.py SRC_DIR OUT_DIR`（要 numpy / lameenc / miniaudio） |
 | 効果音（`public/assets/audio/se`） | `tools/make_se.py OUT_DIR`（要 numpy / lameenc。合成なので元素材なし） |
