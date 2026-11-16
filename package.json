@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/stages.test.mjs && node tests/rooms.test.mjs && node tests/input.test.mjs && node tests/score.test.mjs && node tests/smoke.mjs"
+    "test": "node tests/stages.test.mjs && node tests/rooms.test.mjs && node tests/input.test.mjs && node tests/score.test.mjs && node tests/ranking-api.test.mjs && node tests/smoke.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

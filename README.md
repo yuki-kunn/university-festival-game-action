@@ -28,7 +28,7 @@ npx playwright install chromium   # 初回のみ
 npm test
 ```
 
-`npm test` はステージの到達可能性の検証（`tests/stages.test.mjs`）、ニナの部屋データの検証（`tests/rooms.test.mjs`）、ジャンプ入力・スコア/ランキングの単体テスト、ブラウザでのスモークテストを順に実行します。PR と push では GitHub Actions が同じビルド・テストを実行し、develop / main への push 後は Cloudflare Pages へデプロイします（詳細は [CLAUDE.md](./CLAUDE.md)）。
+`npm test` はステージの到達可能性の検証（`tests/stages.test.mjs`）、ニナの部屋データの検証（`tests/rooms.test.mjs`）、ジャンプ入力・スコア/ランキング・ランキングAPIの単体テスト、ブラウザでのスモークテストを順に実行します。PR と push では GitHub Actions が同じビルド・テストを実行し、develop / main への push 後は Cloudflare Pages へデプロイします（詳細は [CLAUDE.md](./CLAUDE.md)）。
 
 ## 素材の再生成
 
@@ -49,3 +49,12 @@ npm test
 ## 開発ルール
 
 開発ルール・Git ワークフローは [CLAUDE.md](./CLAUDE.md) を参照してください。
+
+## 共有ランキング（Cloudflare KV）
+
+ニコのランキングは `functions/api/ranking.js`（Pages Functions）が KV（バインディング名 `RANKING`）に保存し、全端末で共有します。
+
+- CI のデプロイ前に `scripts/provision-ranking-kv.mjs` が KV 名前空間（本番 `alibi-action-ranking` / プレビュー `alibi-action-ranking-preview`）を作成し、Pages プロジェクトにバインドします。
+- API トークンに「Workers KV Storage: 編集」「Cloudflare Pages: 編集」権限が必要です。権限が無い場合は警告を出し、ダッシュボード（Pages → 設定 → バインディング）で KV を変数名 `RANKING` で追加してください。
+- バインディングが無い間、ゲームはランキングを端末ごとの保存（localStorage）に切り替えて動作します。
+- バインディングの反映は次回デプロイからです。
