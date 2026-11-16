@@ -7,6 +7,7 @@ import PlayScene from "./scenes/PlayScene.js";
 import MaricoPuzzleActionScene from "./scenes/MaricoPuzzleActionScene.js";
 import NikoRushActionScene from "./scenes/NikoRushActionScene.js";
 import NinaEscapeRoomScene from "./scenes/NinaEscapeRoomScene.js";
+import NikoScoreScene from "./scenes/NikoScoreScene.js";
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -36,7 +37,8 @@ const game = new Phaser.Game({
     PlayScene,
     MaricoPuzzleActionScene,
     NikoRushActionScene,
-    NinaEscapeRoomScene
+    NinaEscapeRoomScene,
+    NikoScoreScene
   ]
 });
 

@@ -223,12 +223,10 @@ def obj_lamp():
 
 
 def obj_calendar():
+    """日めくりの台紙。月と日にちは、ゲーム側で「実際の今日 + 1日」を重ねて描く。"""
     a = Art(120, 160)
     a.rect(6, 4, 114, 156, fill=(240, 232, 214), outline=INK, width=2)
     a.rect(6, 4, 114, 40, fill=(190, 60, 70), outline=INK, width=2)
-    a.mixed_text(60, 22, [("11", FONT_LATIN), ("月", FONT_JP)], 24, (255, 244, 230))
-    a.text(60, 86, "13", 54, (50, 40, 44), font=FONT_LATIN)
-    a.text(60, 128, "大安", 16, (120, 70, 60))
     a.ellipse(54, 0, 66, 10, fill=(200, 200, 210), outline=INK, width=1.2)
     for k in range(6):
         a.line([(10 + k * 18, 148), (22 + k * 18, 154)], (150, 140, 120), 1.2)
@@ -301,8 +299,7 @@ def obj_safe(open_):
     a.rect(14, 18, 136, 138, fill=(112, 122, 142), outline=INK, width=2, radius=4)
     if open_:
         a.rect(22, 26, 128, 130, fill=(18, 20, 30))  # 中は暗い
-        a.rect(48, 70, 104, 120, fill=(244, 238, 220), outline=INK, width=1.2)
-        a.text(76, 96, "4", 34, (50, 40, 44), font=FONT_LATIN)
+        a.rect(48, 70, 104, 120, fill=(244, 238, 220), outline=INK, width=1.2)  # 暗証の数字は、ゲーム側で重ねて描く
         # 開いた扉（左側にずれて見える）
         a.poly([(6, 14), (34, 24), (34, 132), (6, 146)], fill=(96, 106, 126), outline=INK, width=2)
     else:

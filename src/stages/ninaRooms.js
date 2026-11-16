@@ -1,5 +1,8 @@
 import { NINA_ESCAPE_ROOM } from "./ninaEscapeRoom.js";
-import { NINA_ROOM2 } from "./ninaRoom2.js";
+import { buildNinaRoom2 } from "./ninaRoom2.js";
 
 // ニナの部屋の一覧（先頭が1部屋目）。1部屋目を脱出すると次の部屋へ進む。
-export const NINA_ROOMS = [NINA_ESCAPE_ROOM, NINA_ROOM2];
+// 2部屋目のカレンダー・金庫は日付で変わるため、日付を受け取って組み立てる。
+export function buildNinaRooms(today = new Date()) {
+  return [NINA_ESCAPE_ROOM, buildNinaRoom2(today)];
+}

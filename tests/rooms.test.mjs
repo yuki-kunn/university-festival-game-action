@@ -5,7 +5,7 @@
 //  - オブジェクトが壁の範囲に収まり、同じ壁で重ならない
 import { existsSync } from "node:fs";
 import { NINA_ART } from "../src/config.js";
-import { NINA_ROOMS } from "../src/stages/ninaRooms.js";
+import { buildNinaRooms } from "../src/stages/ninaRooms.js";
 
 const failures = [];
 const fail = (msg) => failures.push(msg);
@@ -39,8 +39,32 @@ function simulate(room, blocked = new Set()) {
 
 const textureKeys = new Set(NINA_ART.objects);
 
-NINA_ROOMS.forEach((room, i) => {
-  const label = `room${i + 1} ${room.name}`;
+// 2部屋目は「実際の今日 + 1日」の日付でカレンダー・金庫・コードが変わる。
+// 通常の日に加え、月末・年末・うるう日の前日（繰り上がり）でも全部屋を検証する。
+const DATES = ["2026-11-16", "2026-11-09", "2026-11-30", "2026-12-31", "2027-02-28", "2028-02-28"];
+const pad = (n) => String(n).padStart(2, "0");
+
+for (const dateStr of DATES) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const today = new Date(y, m - 1, d, 12);
+  // 期待値は、Date とは別の方法（UTC）で翌日を求める
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  const expectMonth = next.getUTCMonth() + 1;
+  const expectDay = next.getUTCDate();
+
+  buildNinaRooms(today).forEach((room, i) => {
+  const label = `[${dateStr}] room${i + 1} ${room.name}`;
+  if (i === 1) {
+    const cal = room.objects.find((o) => o.id === "m_calendar");
+    const calTexts = cal.overlays.map((o) => o.text);
+    if (calTexts[0] !== `${expectMonth}月` || calTexts[1] !== String(expectDay)) fail(`${label}: カレンダーが ${expectMonth}月${expectDay}日 でない (${calTexts})`);
+    if (!cal.examineText.includes(`${expectMonth}月${expectDay}日`)) fail(`${label}: カレンダーの説明文に日付がない`);
+    const last = String(expectDay % 10);
+    if (room.code !== `352${last}`) fail(`${label}: コードが 352${last} でない (${room.code})`);
+    const safe = room.objects.find((o) => o.id === "m_safe");
+    if (safe.hintValue !== last || safe.overlays[0].text !== last) fail(`${label}: 金庫の暗証が ${last} でない`);
+    if (!safe.examineText.includes(`${expectDay}日`)) fail(`${label}: 金庫の説明文に日にちがない`);
+  }
   if (!/^\d{4}$/.test(room.code)) fail(`${label}: code が4桁の数字でない`);
   if (room.wallOrder.length !== 4) fail(`${label}: 壁が4面でない`);
   const ids = room.objects.map((o) => o.id);
@@ -97,8 +121,9 @@ NINA_ROOMS.forEach((room, i) => {
     if (kind === "obj" && !textureKeys.has(key.replace(/^obj_/, ""))) fail(`${label}: ${key} が NINA_ART.objects に載っていない`);
   }
   if (!NINA_ART.wallPrefixes.includes(room.wallPrefix)) fail(`${label}: wallPrefix が NINA_ART.wallPrefixes に載っていない`);
-  console.log(`${label}: コード ${room.code}、手がかり ${keys.map((k) => `${k}=${hints[k]}`).join(" ")} OK`);
-});
+  if (dateStr === DATES[0] || i === 1) console.log(`${label}: コード ${room.code}、手がかり ${keys.map((k) => `${k}=${hints[k]}`).join(" ")} OK`);
+  });
+}
 
 if (failures.length) {
   console.error(`\n${failures.length} 件失敗`);
