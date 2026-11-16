@@ -1,5 +1,7 @@
 import ActionSceneBase from "./ActionSceneBase.js";
 import { playSe } from "../audio.js";
+import { proceedAfter } from "../effects/resultBanner.js";
+import { addNikoStageResult, resetNikoRun, stageScore } from "../score.js";
 
 // ニコ担当：爽快アクション（ハイテンションなキッズゲーマー向け）。
 // 高速移動・ミスしにくい構成・コイン収集によるスコア演出が特徴。
@@ -9,6 +11,32 @@ const COIN_SIZE = 20;
 export default class NikoRushActionScene extends ActionSceneBase {
   constructor() {
     super("NikoRushActionScene");
+  }
+
+  init(data) {
+    super.init(data);
+    // ステージ1から始めるときは、新しいプレイとして記録を作り直す（ステージ1のやり直しも含む）
+    if (this.stageIndex === 0) resetNikoRun(this.game);
+  }
+
+  create() {
+    super.create();
+    this.attemptStartedAt = this.time.now; // クリア時間の起点（ミスで再開したときは、その試行の開始から）
+  }
+
+  // クリア時間とコイン数を記録する（最終ステージのあと、スコア画面で合計する）
+  onStageCleared() {
+    this.lastResult = {
+      stageIndex: this.stageIndex,
+      coins: this.coinCount,
+      totalCoins: this.stage.coins.length,
+      timeMs: this.time.now - this.attemptStartedAt
+    };
+    addNikoStageResult(this.game, this.lastResult);
+  }
+
+  proceedAfterFinalClear() {
+    proceedAfter(this, 3200, () => this.scene.start("NikoScoreScene"));
   }
 
   getHudHintText() {
@@ -21,7 +49,8 @@ export default class NikoRushActionScene extends ActionSceneBase {
   }
 
   getClearSubText() {
-    return this.formatScoreText();
+    const r = this.lastResult;
+    return `コイン ${r.coins}/${r.totalCoins}　${(r.timeMs / 1000).toFixed(1)}秒　スコア ${stageScore(r).total.toLocaleString("ja-JP")}`;
   }
 
   formatScoreText() {

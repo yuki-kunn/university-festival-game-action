@@ -175,6 +175,12 @@ export const DASH = {
   invincibleMs: 220 // ダッシュ開始からの無敵時間（durationMsより少し長め）
 };
 
+// ジャンプ入力の猶予（src/input.js）。先行入力と、接地判定が外れた直後の猶予（ミリ秒）。
+export const JUMP_INPUT = {
+  bufferMs: 140,
+  coyoteMs: 110
+};
+
 // テキストの描画解像度。Scale.FITでCSS表示サイズを拡大しても、canvasの
 // 内部描画バッファは論理解像度(GAME_WIDTH x GAME_HEIGHT)のままのため、
 // 特に高DPIディスプレイでテキストの輪郭が大きくぼやける。Phaserの

@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 import { addMuteButton, playBgm, playSe, stopBgm } from "../audio.js";
+import { addHomeButton } from "../ui.js";
 import { proceedAfter, returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXT_RESOLUTION } from "../config.js";
-import { NINA_ROOMS } from "../stages/ninaRooms.js";
+import { buildNinaRooms } from "../stages/ninaRooms.js";
 
 // ニナ担当：脱出系論理パズル（激ムズ）。一人称視点で、左右の矢印で
 // 東西南北4方向の壁を巡回しながらオブジェクトをクリックして調査し、
@@ -12,6 +13,8 @@ const WALL_CENTER_X = GAME_WIDTH / 2;
 const WALL_CENTER_Y = GAME_HEIGHT / 2 + 10;
 const WALL_WIDTH = GAME_WIDTH - 40;
 const WALL_HEIGHT = 420;
+const EXAMINE_PANEL_WIDTH = GAME_WIDTH - 120;
+const EXAMINE_BOTTOM_MARGIN = 46; // 左下のホーム・右下のミュートボタンに重ならない高さ
 
 export default class NinaEscapeRoomScene extends Phaser.Scene {
   constructor() {
@@ -20,8 +23,10 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
 
   init(data) {
     this.roomIndex = data?.roomIndex ?? 0;
-    this.roomCount = NINA_ROOMS.length;
-    this.room = NINA_ROOMS[this.roomIndex];
+    // 2部屋目のカレンダー・金庫は「実際の今日 + 1日」で決まる。data.today はテスト用に日付を固定するため。
+    const rooms = buildNinaRooms(data?.today ?? new Date());
+    this.roomCount = rooms.length;
+    this.room = rooms[this.roomIndex];
     this.examinedIds = new Set();
     this.hints = {}; // hintKey -> hintValue（判明したもののみ格納）
     this.attemptsLeft = this.room.maxAttempts;
@@ -86,6 +91,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     this.createExamineBox();
     this.createCodeInputBox();
     addMuteButton(this);
+    addHomeButton(this);
     playBgm(this, this.room.bgm);
 
     this.renderCurrentWall();
@@ -130,6 +136,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
     if (this.isFinished) return;
     const wallCount = this.room.wallOrder.length;
     this.currentWallIndex = (this.currentWallIndex + direction + wallCount) % wallCount;
+    this.examineBox.setVisible(false); // 開いている説明文は、視点を動かしたら閉じる
     playSe(this, "turn");
     this.renderCurrentWall();
   }
@@ -183,6 +190,21 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
 
     this.objectContainer.add([image, label]);
 
+    // 画像に焼き込まず、ゲーム側で描く文字（日めくりの日付・金庫の暗証の数字など）
+    (obj.overlays ?? []).forEach(o => {
+      if (o.when === "examined" && !this.examinedIds.has(obj.id)) return;
+      const text = this.add
+        .text(obj.x + o.dx, obj.y + o.dy, o.text, {
+          fontFamily: "sans-serif",
+          fontSize: `${o.size}px`,
+          fontStyle: "bold",
+          color: o.color,
+          resolution: TEXT_RESOLUTION
+        })
+        .setOrigin(0.5);
+      this.objectContainer.add(text);
+    });
+
     // 調査済みの印
     if (this.examinedIds.has(obj.id) && !obj.isExit) {
       const badge = this.add
@@ -202,22 +224,24 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
   createExamineBox() {
     this.examineBox = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 90).setVisible(false);
 
-    const panel = this.add.rectangle(0, 0, GAME_WIDTH - 80, 140, COLORS.panel, 0.97);
-    panel.setStrokeStyle(2, COLORS.accentSoft);
+    this.examinePanel = this.add.rectangle(0, 0, EXAMINE_PANEL_WIDTH, 140, COLORS.panel, 0.97);
+    this.examinePanel.setStrokeStyle(2, COLORS.accentSoft);
 
     this.examineText = this.add
-      .text(0, -18, "", {
+      .text(0, 0, "", {
         fontFamily: "sans-serif",
-        fontSize: "14px",
+        fontSize: "15px",
         color: "#f5f3fa",
         align: "center",
-        wordWrap: { width: GAME_WIDTH - 140 },
+        lineSpacing: 4,
+        // 日本語は空白で区切れないため、useAdvancedWrap で文字単位でも折り返す
+        wordWrap: { width: EXAMINE_PANEL_WIDTH - 60, useAdvancedWrap: true },
         resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5);
 
-    const closeButton = this.add
-      .text(0, 48, "閉じる", {
+    this.examineCloseButton = this.add
+      .text(0, 0, "閉じる", {
         fontFamily: "sans-serif",
         fontSize: "14px",
         color: "#ffffff",
@@ -227,9 +251,21 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    closeButton.on("pointerdown", () => this.examineBox.setVisible(false));
+    this.examineCloseButton.on("pointerdown", () => this.examineBox.setVisible(false));
 
-    this.examineBox.add([panel, this.examineText, closeButton]);
+    this.examineBox.add([this.examinePanel, this.examineText, this.examineCloseButton]);
+    this.layoutExamineBox();
+  }
+
+  // 文字量に合わせて枠の高さを決め、画面の下端に揃える（文字が枠をはみ出さないように）
+  layoutExamineBox() {
+    const textHeight = this.examineText.height;
+    const panelHeight = Math.max(110, textHeight + 78);
+    this.examinePanel.setSize(EXAMINE_PANEL_WIDTH, panelHeight);
+    this.examinePanel.setDisplaySize(EXAMINE_PANEL_WIDTH, panelHeight);
+    this.examineBox.y = GAME_HEIGHT - EXAMINE_BOTTOM_MARGIN - panelHeight / 2;
+    this.examineText.y = -panelHeight / 2 + 18 + textHeight / 2;
+    this.examineCloseButton.y = panelHeight / 2 - 28;
   }
 
   handleObjectClick(obj) {
@@ -277,6 +313,7 @@ export default class NinaEscapeRoomScene extends Phaser.Scene {
 
   showExamineText(text) {
     this.examineText.setText(text);
+    this.layoutExamineBox();
     this.examineBox.setVisible(true);
   }
 

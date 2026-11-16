@@ -130,7 +130,8 @@ export function applyMutePreference(game) {
 }
 
 // 画面右下のミュートボタン（Mキーでも切り替え）。各シーンの create() で呼ぶ。
-export function addMuteButton(scene) {
+// 文字入力のある画面では key: false にして、Mキーを無効にする。
+export function addMuteButton(scene, { key = true } = {}) {
   const label = muted => (muted ? "♪ OFF" : "♪ ON");
   const button = scene.add
     .text(GAME_WIDTH - 12, GAME_HEIGHT - 12, label(scene.game.registry.get(MUTED)), {
@@ -154,6 +155,6 @@ export function addMuteButton(scene) {
     button.setText(label(next));
   };
   button.on("pointerdown", toggle);
-  scene.input.keyboard.on("keydown-M", toggle);
+  if (key) scene.input.keyboard.on("keydown-M", toggle);
   return button;
 }
