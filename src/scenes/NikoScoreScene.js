@@ -1,7 +1,15 @@
 import Phaser from "phaser";
 import { addMuteButton, playBgm, playSe } from "../audio.js";
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, TEXT_RESOLUTION } from "../config.js";
-import { addRanking, loadRanking, normalizeName, previewRank, RANKING } from "../ranking.js";
+import {
+  addRanking,
+  fetchSharedRanking,
+  loadRanking,
+  normalizeName,
+  previewRankIn,
+  RANKING,
+  submitSharedRanking
+} from "../ranking.js";
 import { formatTime, getNikoRun, runScore } from "../score.js";
 import { STAGES } from "../stages/index.js";
 import { addHomeButton, goHome } from "../ui.js";
@@ -11,6 +19,7 @@ import { addHomeButton, goHome } from "../ui.js";
 const SERIF = "'Hiragino Mincho ProN', 'Yu Mincho', serif";
 const GOLD = "#ffd24c";
 const COLORS_ACCENT = "#a68cf0";
+const REGISTER_BUTTON_X = 370; // 「ランキングに登録」ボタンの位置（左のパネルの右端付近に揃える）
 
 export default class NikoScoreScene extends Phaser.Scene {
   constructor() {
@@ -21,6 +30,8 @@ export default class NikoScoreScene extends Phaser.Scene {
     this.result = runScore(getNikoRun(this.game).stages);
     this.registered = false;
     this.rankingTexts = [];
+    this.ranking = []; // 表示中のランキング
+    this.sharedMode = null; // null: 読み込み中 / true: みんなの記録（サーバー） / false: この端末の記録
   }
 
   create() {
@@ -95,22 +106,40 @@ export default class NikoScoreScene extends Phaser.Scene {
     const top = 84;
     this.add.rectangle(left, top, 420, 326, COLORS.panel, 0.92).setOrigin(0).setStrokeStyle(2, COLORS.accentSoft);
     this.text(left + 210, top + 18, "RANKING  TOP 10", 14, COLORS_ACCENT, { fontStyle: "bold" }).setOrigin(0.5);
+    this.statusText = this.text(left + 210, top + 36, "読み込み中…", 11, "#a99fc4").setOrigin(0.5);
     this.rankingLeft = left;
-    this.rankingTop = top + 40;
-    this.messageText = this.text(left + 210, top + 306, "", 13, "#d4cfe0").setOrigin(0.5);
+    this.rankingTop = top + 52;
+    this.messageText = this.text(left + 210, top + 308, "", 13, "#d4cfe0").setOrigin(0.5);
     this.renderRanking();
+    this.loadRanking();
+  }
+
+  // 共有ランキング（サーバー）を取得する。取得できなければ、この端末の記録に切り替える。
+  async loadRanking() {
+    const shared = await fetchSharedRanking();
+    if (!this.scene.isActive()) return; // 待っている間に別の画面へ移った
+    this.applyRanking(shared ?? loadRanking(), shared !== null);
+  }
+
+  applyRanking(ranking, shared, highlightAt = null) {
+    this.ranking = ranking;
+    this.sharedMode = shared;
+    this.statusText
+      .setText(shared ? "みんなの記録" : "この端末の記録（サーバーに接続できません）")
+      .setColor(shared ? "#8cf0c0" : "#f0c08c");
+    this.renderRanking(highlightAt);
   }
 
   // highlightAt: 登録直後に強調する行（登録した記録の at）。
   renderRanking(highlightAt = null) {
     this.rankingTexts.forEach(t => t.destroy());
     this.rankingTexts = [];
-    const ranking = loadRanking();
-    if (ranking.length === 0) {
-      this.rankingTexts.push(this.text(this.rankingLeft + 210, this.rankingTop + 110, "まだ記録がありません", 14, "#7d7596").setOrigin(0.5));
+    if (this.ranking.length === 0) {
+      const empty = this.sharedMode === null ? "" : "まだ記録がありません";
+      this.rankingTexts.push(this.text(this.rankingLeft + 210, this.rankingTop + 100, empty, 14, "#7d7596").setOrigin(0.5));
     }
-    ranking.forEach((e, i) => {
-      const y = this.rankingTop + i * 26;
+    this.ranking.forEach((e, i) => {
+      const y = this.rankingTop + i * 24;
       const color = e.at === highlightAt ? GOLD : "#f5f3fa";
       this.rankingTexts.push(
         this.text(this.rankingLeft + 40, y, `${i + 1}`, 14, color, { fontStyle: "bold" }).setOrigin(1, 0),
@@ -118,8 +147,8 @@ export default class NikoScoreScene extends Phaser.Scene {
         this.text(this.rankingLeft + 400, y, e.score.toLocaleString("ja-JP"), 14, color).setOrigin(1, 0)
       );
     });
-    if (!this.registered) {
-      const rank = previewRank({ score: this.result.total, timeMs: this.result.timeMs });
+    if (!this.registered && this.sharedMode !== null) {
+      const rank = previewRankIn(this.ranking, { score: this.result.total, timeMs: this.result.timeMs });
       this.messageText.setText(rank ? `いま登録すると ${rank}位` : "このスコアは圏外です");
     }
   }
@@ -127,7 +156,7 @@ export default class NikoScoreScene extends Phaser.Scene {
   // ---- ボタン ----
   createButtons() {
     const y = 470;
-    this.registerButton = this.makeButton(300, y, "ランキングに登録", () => this.openNameInput());
+    this.registerButton = this.makeButton(REGISTER_BUTTON_X, y, "ランキングに登録", () => this.openNameInput());
     this.makeButton(660, y, "もう一度あそぶ", () => {
       this.scene.start("NikoRushActionScene", { characterId: "niko", stageIndex: 0 });
     });
@@ -219,23 +248,32 @@ export default class NikoScoreScene extends Phaser.Scene {
     }
   }
 
-  // 名前を決めてランキングに登録する。登録した順位（圏外なら null）を返す。
-  submitName(rawName) {
+  // 名前を決めてランキングに登録する。まず共有ランキング（サーバー）に送り、送れなければこの端末に保存する。
+  // 登録した順位（圏外なら null）を返す。
+  async submitName(rawName) {
     if (this.registered) return null;
     this.registered = true;
     this.closeNameInput();
     const name = normalizeName(rawName);
-    const { rank, record } = addRanking({
-      name,
-      score: this.result.total,
-      coins: this.result.coins,
-      timeMs: this.result.timeMs
-    });
+    const entry = { name, score: this.result.total, coins: this.result.coins, timeMs: this.result.timeMs };
     this.registerButton.destroy();
-    this.renderRanking(record.at);
-    this.messageText.setText(rank ? `${name}さん、${rank}位に登録しました！` : `${name}さんのスコアは圏外でした`).setColor(GOLD);
+    this.messageText.setText("登録しています…").setColor("#d4cfe0");
+
+    const shared = await submitSharedRanking(entry);
+    if (!this.scene.isActive()) return null;
+    let rank;
+    let note = "";
+    if (shared) {
+      rank = shared.rank;
+      this.applyRanking(shared.ranking, true, shared.record.at);
+    } else {
+      const local = addRanking(entry);
+      rank = local.rank;
+      this.applyRanking(local.ranking, false, local.record.at);
+      note = "（サーバーに接続できないため、この端末にだけ保存しました）";
+    }
+    this.messageText.setText(rank ? `${name}さん、${rank}位に登録しました！${note}` : `${name}さんのスコアは圏外でした${note}`).setColor(GOLD);
     playSe(this, rank ? "clear" : "click");
     return rank;
   }
 }
-

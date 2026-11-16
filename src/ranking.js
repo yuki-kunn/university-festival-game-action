@@ -1,12 +1,50 @@
-// ニコのランキング。この端末（ブラウザの localStorage）に保存する。展示PCで遊んでもらう想定。
-// 保存先（storage）を引数で差し替えられるので、サーバー側の共有ランキングにする場合も、
-// このモジュールの load / add の中身を差し替えるだけで済む。
-export const RANKING = {
-  storageKey: "alibi-action-niko-ranking",
-  maxEntries: 10, // 表示・保存する件数
-  nameMaxLength: 8,
-  defaultName: "ななし"
-};
+import { RANKING, isEntry, normalizeName, previewRankIn, rankOf, sortRanking } from "./rankingCore.js";
+
+// ニコのランキング（クライアント側）。
+// 共有ランキング（サーバー: functions/api/ranking.js）を第一に使い、通信できない・サーバー側が
+// 未設定のときは、この端末（ブラウザの localStorage）に保存する。
+export { RANKING, normalizeName, sortRanking };
+
+const API_URL = "/api/ranking";
+
+// ---- 共有ランキング（サーバー） ----
+
+// 上位10件を取得する。取得できなければ null（呼び出し側がローカルに切り替える）。
+export async function fetchSharedRanking({ fetchImpl = fetch, timeoutMs = 5000 } = {}) {
+  try {
+    const res = await fetchImpl(API_URL, { cache: "no-store", signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data.ranking)) return null;
+    return sortRanking(data.ranking.filter(isEntry)).slice(0, RANKING.maxEntries);
+  } catch {
+    return null; // 通信エラー・タイムアウト・JSONでない応答（サーバー側が未設定など）
+  }
+}
+
+// 記録を登録する。成功したら { ranking, rank, record }、失敗したら null。
+export async function submitSharedRanking(entry, { fetchImpl = fetch, timeoutMs = 8000 } = {}) {
+  try {
+    const res = await fetchImpl(API_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: normalizeName(entry.name), score: entry.score, coins: entry.coins, timeMs: entry.timeMs }),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data.ranking) || !isEntry(data.record)) return null;
+    return {
+      ranking: sortRanking(data.ranking.filter(isEntry)).slice(0, RANKING.maxEntries),
+      rank: Number.isInteger(data.rank) ? data.rank : null,
+      record: data.record
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ---- この端末のローカル保存（共有が使えないときの代替） ----
 
 function defaultStorage() {
   try {
@@ -14,24 +52,6 @@ function defaultStorage() {
   } catch {
     return null; // プライベートモード等で使えない場合は、保存しない
   }
-}
-
-// 名前を整える（前後の空白・制御文字を除き、8文字まで。空なら「ななし」）。
-export function normalizeName(name) {
-  const cleaned = String(name ?? "")
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .trim();
-  const chars = Array.from(cleaned).slice(0, RANKING.nameMaxLength).join("");
-  return chars === "" ? RANKING.defaultName : chars;
-}
-
-// スコアの高い順。同点はクリア時間が短い順、それも同じなら先に登録した順。
-export function sortRanking(entries) {
-  return [...entries].sort((a, b) => b.score - a.score || a.timeMs - b.timeMs || a.at - b.at);
-}
-
-function isEntry(e) {
-  return e && typeof e.name === "string" && Number.isFinite(e.score) && Number.isFinite(e.timeMs) && Number.isFinite(e.at);
 }
 
 export function loadRanking(storage = defaultStorage()) {
@@ -44,14 +64,12 @@ export function loadRanking(storage = defaultStorage()) {
   }
 }
 
-// いまのスコアを登録した場合の順位（1始まり。圏外なら null）。登録前の予告表示に使う。
+// いまの記録を登録した場合の順位（1始まり。圏外なら null）。ローカルの一覧が対象。
 export function previewRank(entry, storage = defaultStorage()) {
-  const sorted = sortRanking([...loadRanking(storage), { ...entry, at: Number.MAX_SAFE_INTEGER }]);
-  const index = sorted.findIndex(e => e.at === Number.MAX_SAFE_INTEGER);
-  return index < RANKING.maxEntries ? index + 1 : null;
+  return previewRankIn(loadRanking(storage), entry);
 }
 
-// ランキングに登録する。entry は { name, score, coins, timeMs }。登録後の一覧と、順位（圏外なら null）を返す。
+// ローカルに登録する。entry は { name, score, coins, timeMs }。登録後の一覧と順位（圏外なら null）を返す。
 export function addRanking(entry, storage = defaultStorage(), now = Date.now()) {
   const record = {
     name: normalizeName(entry.name),
@@ -71,3 +89,5 @@ export function addRanking(entry, storage = defaultStorage(), now = Date.now()) 
   const index = ranking.indexOf(record);
   return { ranking, rank: index >= 0 ? index + 1 : null, record };
 }
+
+export { previewRankIn, rankOf };

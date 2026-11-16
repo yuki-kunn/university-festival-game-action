@@ -51,6 +51,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       PAGES_PROJECT: university-festival-game-action
     steps:
+      - uses: actions/checkout@v4
+
       # 認証情報が未登録の間は、デプロイだけをスキップしてCIを成功させる
       - name: Check Cloudflare credentials
         id: creds
@@ -76,6 +78,16 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages project create ${{ env.PAGES_PROJECT }} --production-branch=main
+
+      # ランキング用 KV の用意とバインディング設定（毎回実行しても安全。失敗してもデプロイは続ける）
+      - uses: actions/setup-node@v4
+        if: steps.creds.outputs.enabled == 'true'
+        with:
+          node-version: 22
+
+      - name: Provision ranking KV
+        if: steps.creds.outputs.enabled == 'true'
+        run: node scripts/provision-ranking-kv.mjs
 
       # main=本番、それ以外(develop)=プレビューURLにデプロイされる
       - name: Deploy

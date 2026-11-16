@@ -275,10 +275,11 @@ async function runCase(chara) {
 for (const chara of CHARACTERS) await runCase(chara);
 
 // ---- ここから追加の確認（ホームへ戻るボタン・ニコのスコアとランキング） ----
-async function enterGame(errors) {
+async function enterGame(errors, setup) {
   const page = await browser.newPage({ viewport: { width: 1000, height: 600 } });
   page.on("pageerror", e => errors.push(`pageerror: ${e}`));
   page.on("console", m => m.type() === "error" && errors.push(`console: ${m.text()}`));
+  if (setup) await setup(page);
   await page.goto(`http://localhost:${PORT}/?debug`);
   await page.waitForFunction(() => window.game?.scene.isActive("TitleScene"), null, { timeout: 15000 });
   const box = await (await page.$("canvas")).boundingBox();
@@ -334,9 +335,26 @@ await homeCase("キャラ選択", null);
 for (const chara of CHARACTERS) await homeCase(chara.id, chara);
 
 // ニコ: 3ステージをクリア → スコア画面 → 名前を入力してランキングに登録
-async function nikoScoreCase() {
+// mode: "local" … サーバーに接続できない（503）→ この端末に保存 / "shared" … 共有ランキング（API を模擬）
+async function nikoScoreCase(mode) {
   const errors = [];
-  const { page, click, clickUntil } = await enterGame(errors);
+  const label = mode === "shared" ? "共有" : "端末のみ";
+  const server_ranking = [{ name: "せんぱい", score: 1, coins: 0, timeMs: 99999, at: 1 }];
+  const posted = [];
+  const { page, click, clickUntil } = await enterGame(errors, async pg => {
+    await pg.route("**/api/ranking", async route => {
+      const req = route.request();
+      if (mode !== "shared") return route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"ranking-unavailable"}' });
+      if (req.method() === "POST") {
+        const entry = { ...JSON.parse(req.postData()), at: 1000 + posted.length };
+        posted.push(entry);
+        server_ranking.push(entry);
+        server_ranking.sort((a, b) => b.score - a.score);
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ranking: server_ranking, rank: server_ranking.indexOf(entry) + 1, record: entry, duplicate: false }) });
+      }
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ranking: server_ranking }) });
+    });
+  });
   try {
     await clickUntil(GAME_W / 2, GAME_H / 2 + 60, "CharacterSelectScene");
     await clickUntil(582, GAME_H / 2 + 20, "NikoRushActionScene");
@@ -363,21 +381,33 @@ async function nikoScoreCase() {
     assert(result.total === runScore(result.stages).total, "合計スコアが、ステージごとの記録からの計算と一致しない");
     assert(result.stages.every(st => st.timeMs > 0), "クリア時間が記録されていない");
 
+    // ランキングの取得: 共有ならサーバーの記録、接続できなければ端末の記録に切り替わる
+    await page.waitForFunction(() => window.game.scene.getScenes(true)[0].sharedMode !== null, null, { timeout: 5000 });
+    const mode0 = await page.evaluate(() => ({ shared: window.game.scene.getScenes(true)[0].sharedMode, n: window.game.scene.getScenes(true)[0].ranking.length }));
+    assert(mode0.shared === (mode === "shared"), `ランキングの取得元が想定と違う: ${JSON.stringify(mode0)}`);
+    if (mode === "shared") assert(mode0.n === 1, "サーバーの記録が表示されない");
+
     // 登録: ボタン → 名前入力 → ランキングに反映（M を含む名前を打っても、ミュートは切り替わらない）
-    await click(300, 470);
+    await click(370, 470);
     await page.waitForSelector('input[type="text"]');
     await page.fill('input[type="text"]', "ニコ太郎m");
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => window.game.scene.getScenes(true)[0].registered === true, null, { timeout: 5000 });
     const saved = await page.evaluate(() => ({
-      ranking: JSON.parse(localStorage.getItem("alibi-action-niko-ranking")),
+      ranking: JSON.parse(localStorage.getItem("alibi-action-niko-ranking") ?? "[]"),
       message: window.game.scene.getScenes(true)[0].messageText.text,
       muted: window.game.registry.get("muted")
     }));
-    assert(saved.ranking.length === 1 && saved.ranking[0].name === "ニコ太郎m" && saved.ranking[0].score === result.total, `ランキングの保存内容が想定と違う: ${JSON.stringify(saved.ranking)}`);
-    assert(saved.message.includes("1位"), `登録の表示が想定と違う: ${saved.message}`);
+    if (mode === "shared") {
+      assert(posted.length === 1 && posted[0].name === "ニコ太郎m" && posted[0].score === result.total, `サーバーへの送信内容が想定と違う: ${JSON.stringify(posted)}`);
+      assert(saved.ranking.length === 0, "共有ランキングに登録できたのに、端末にも保存している");
+      assert(saved.message.includes("1位") && !saved.message.includes("この端末"), `登録の表示が想定と違う: ${saved.message}`);
+    } else {
+      assert(saved.ranking.length === 1 && saved.ranking[0].name === "ニコ太郎m" && saved.ranking[0].score === result.total, `ランキングの保存内容が想定と違う: ${JSON.stringify(saved.ranking)}`);
+      assert(saved.message.includes("1位") && saved.message.includes("この端末"), `登録の表示が想定と違う: ${saved.message}`);
+    }
     assert(saved.muted === false, "名前入力でMキーを打つとミュートが切り替わってしまう");
-    await click(300, 470); // 登録済みなので、入力欄は出ない
+    await click(370, 470); // 登録済みなので、入力欄は出ない
     await page.waitForTimeout(400);
     assert((await page.$('input[type="text"]')) === null, "登録済みなのに、もう一度入力欄が出る");
 
@@ -396,16 +426,19 @@ async function nikoScoreCase() {
     await page.evaluate(() => { const sc = window.game.scene.getScenes(true)[0]; sc.homeButton.emit("pointerdown"); sc.homeButton.emit("pointerdown"); });
     await page.waitForFunction(() => window.game.scene.isActive("TitleScene"), null, { timeout: 10000 });
     assert((await page.evaluate(() => window.game.registry.get("nikoRun").stages.length)) === 0, "ホームへ戻っても記録がリセットされない");
-    assert(errors.length === 0, `ブラウザエラー: ${errors.join(" | ")}`);
-    console.log("PASS ニコのスコアとランキング");
+    // サーバー未接続の確認では、模擬した 503 のログは想定どおりなので除く
+    const unexpected = errors.filter(e => !(mode !== "shared" && e.includes("503")));
+    assert(unexpected.length === 0, `ブラウザエラー: ${unexpected.join(" | ")}`);
+    console.log(`PASS ニコのスコアとランキング（${label}）`);
   } catch (e) {
-    failures.push(`ニコのスコア: ${e.message}`);
-    console.error(`FAIL ニコのスコア: ${e.message}`);
+    failures.push(`ニコのスコア（${label}）: ${e.message}`);
+    console.error(`FAIL ニコのスコア（${label}）: ${e.message}`);
   } finally {
     await page.close();
   }
 }
-await nikoScoreCase();
+await nikoScoreCase("local");
+await nikoScoreCase("shared");
 
 await browser.close();
 await server.close();
