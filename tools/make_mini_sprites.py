@@ -94,7 +94,9 @@ def build_pieces(im, spec):
     pieces = {}
     # 各パーツは (画像, 元画像の左端x, スケール, コマ上の左上y) で保持する
     a, b = spec.get("a", A_HEAD), spec.get("b", B_BODY)
-    head = crop_scaled(im, (0, 0, w, row(spec["head_end"])), a)
+    # 元の立ち絵は顔が画面左向き。ゲームでは右向きが基準（左へ進むときは反転表示）なので、
+    # 頭だけを左右反転して顔を進行方向（右）に向ける。体の傾きはもともと右向き。
+    head = crop_scaled(im, (0, 0, w, row(spec["head_end"])), a).transpose(Image.FLIP_LEFT_RIGHT)
     torso = crop_scaled(im, (0, row(spec["torso_start"]), w, row(spec["torso_end"])), b)
     taper_top(torso, nx * b)
     leg_top = row(spec["legs_start"])
@@ -102,7 +104,7 @@ def build_pieces(im, spec):
     legr = crop_scaled(im, (sx, leg_top, w, h), b)
 
     head_bottom_y = BASELINE - (1.0 - spec["head_end"]) * h * b + 2
-    pieces["head"] = (head, CENTER_X - nx * a, head_bottom_y - head.height)
+    pieces["head"] = (head, CENTER_X - (w - nx) * a, head_bottom_y - head.height)  # 反転したので首の位置も左右が入れ替わる
     torso_y = BASELINE - (1.0 - spec["torso_end"]) * h * b - torso.height
     pieces["torso"] = (torso, CENTER_X - nx * b, torso_y)
     leg_y = BASELINE - legl.height

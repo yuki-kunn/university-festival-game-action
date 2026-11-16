@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { addMuteButton, playBgm, playSe, stopBgm } from "../audio.js";
 import { proceedAfter, returnToTitleAfter, showResultBanner } from "../effects/resultBanner.js";
+import { addHomeButton } from "../ui.js";
+import { isGroundedRecently, shouldJump } from "../input.js";
 import { STAGES } from "../stages/index.js";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, CHARACTERS, DASH, SPRITE, STAGE_ART, TEXT_RESOLUTION } from "../config.js";
 
@@ -34,6 +36,8 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.isInvincible = false;
     this.canDash = true;
     this.airDashUsed = false; // 空中ダッシュは着地するまでに1回だけ
+    this.jumpPressedAt = -Infinity; // ジャンプを押した時刻（先行入力）
+    this.lastGroundedAt = -Infinity; // 最後に接地していた時刻（猶予時間）
     this.facing = 1; // 1: 右向き, -1: 左向き
 
     this.createBackground();
@@ -45,6 +49,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.createHud();
     this.setupInput();
     addMuteButton(this);
+    addHomeButton(this);
     playBgm(this, this.character.bgmKey);
 
     this.physics.add.collider(this.player, this.platformGroup);
@@ -135,6 +140,8 @@ export default class ActionSceneBase extends Phaser.Scene {
         color: "#d4cfe0",
         backgroundColor: "rgba(20,18,26,0.7)",
         padding: { x: 8, y: 4 },
+        // 長い操作説明は折り返して、画面中央上部のSTAGE表示（幅の中心±120px）と重ならないようにする
+        wordWrap: { width: 320, useAdvancedWrap: true },
         resolution: TEXT_RESOLUTION
       })
       .setScrollFactor(0);
@@ -176,10 +183,34 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+    // ジャンプとダッシュは、キーの押下イベントで受ける。JustDown は「押して離すまでが1フレームに
+    // 収まる短いタップ」だと押したこと自体が消えるため、描画が遅いPCで入力が抜けてしまう。
+    this.dashRequested = false;
+    const onKeyDown = (event, handler) => {
+      this.input.keyboard.on(event, handler);
+      this.events.once("shutdown", () => this.input.keyboard.off(event, handler));
+    };
+    const requestJump = () => {
+      this.jumpPressedAt = this.time.now;
+    };
+    onKeyDown("keydown-SPACE", requestJump);
+    onKeyDown("keydown-UP", requestJump);
+    onKeyDown("keydown-SHIFT", () => {
+      this.dashRequested = true;
+    });
   }
 
   update() {
     this.background.tilePositionX = this.cameras.main.scrollX * STAGE_ART.bgParallax;
+    const now = this.time.now;
+
+    // 入力は毎フレーム読む。早期returnで読み飛ばすと、押した瞬間の入力が古いまま残るため。
+    const left = this.cursors.left.isDown || this.keyA.isDown;
+    const right = this.cursors.right.isDown || this.keyD.isDown;
+    const dashPressed = this.dashRequested;
+    this.dashRequested = false;
+
     if (this.isGameOver) return;
 
     // 画面下へ落下したら即ミス
@@ -189,12 +220,6 @@ export default class ActionSceneBase extends Phaser.Scene {
     }
 
     if (this.isDashing) return; // ダッシュ中は移動入力を受け付けない（慣性で進む）
-
-    const left = this.cursors.left.isDown || this.keyA.isDown;
-    const right = this.cursors.right.isDown || this.keyD.isDown;
-    const jumpPressed =
-      Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keySpace);
-    const dashPressed = Phaser.Input.Keyboard.JustDown(this.keyShift);
 
     if (left) {
       this.player.body.setVelocityX(-this.character.moveSpeed);
@@ -206,16 +231,33 @@ export default class ActionSceneBase extends Phaser.Scene {
       this.player.body.setVelocityX(0);
     }
 
-    const onGround = this.player.body.blocked.down || this.player.body.touching.down;
+    const touching = this.player.body.blocked.down || this.player.body.touching.down;
+    if (touching && this.player.body.velocity.y >= 0) this.lastGroundedAt = now;
+    this.tryJump(now);
+
+    // 着地中に接地判定が1フレーム外れても、地上として扱う（空中ダッシュを消費しない・ジャンプ姿にならない）
+    const onGround = isGroundedRecently({
+      now,
+      lastGroundedAt: this.lastGroundedAt,
+      velocityY: this.player.body.velocity.y,
+      frameMs: this.game.loop.delta
+    });
     if (onGround) this.airDashUsed = false;
-    if (jumpPressed && onGround) {
-      playSe(this, "jump");
-      this.player.body.setVelocityY(-this.character.jumpPower);
-    }
 
     if (dashPressed && this.tryDash(onGround)) return;
 
     this.updateAnimation(left || right, onGround);
+  }
+
+  // 先行入力と猶予時間を考慮してジャンプする。ジャンプしたら true。
+  tryJump(now) {
+    const frameMs = this.game.loop.delta; // 描画が遅い環境でも、押したジャンプを取りこぼさないため
+    if (!shouldJump({ now, jumpPressedAt: this.jumpPressedAt, lastGroundedAt: this.lastGroundedAt, frameMs })) return false;
+    playSe(this, "jump");
+    this.player.body.setVelocityY(-this.character.jumpPower);
+    this.jumpPressedAt = -Infinity;
+    this.lastGroundedAt = -Infinity; // 同じ入力で二重にジャンプしない
+    return true;
   }
 
   updateAnimation(moving, onGround) {
@@ -286,6 +328,7 @@ export default class ActionSceneBase extends Phaser.Scene {
     this.player.anims.play(`${this.character.id}_idle`, true);
     stopBgm(this);
     playSe(this, "clear");
+    this.onStageCleared();
     const isLast = this.stageIndex >= this.stageCount - 1;
     const extra = this.getClearSubText();
     const message = isLast ? "全ステージクリア！" : `次は STAGE ${this.stageIndex + 2}`;
@@ -294,12 +337,20 @@ export default class ActionSceneBase extends Phaser.Scene {
       portraitKey: this.character.portraitKey
     });
     if (isLast) {
-      returnToTitleAfter(this, 3200);
+      this.proceedAfterFinalClear();
     } else {
       proceedAfter(this, 2600, () =>
         this.scene.restart({ characterId: this.characterId, stageIndex: this.stageIndex + 1 })
       );
     }
+  }
+
+  // ステージをクリアした直後に呼ばれる（記録などを残したいサブクラス用）。
+  onStageCleared() {}
+
+  // 最終ステージのクリア演出のあとの遷移。既定はタイトルへ戻る。
+  proceedAfterFinalClear() {
+    returnToTitleAfter(this, 3200);
   }
 
   // クリア演出のバナー下に出す補足文。コイン数など、ジャンル固有の結果を返す。

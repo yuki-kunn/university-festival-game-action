@@ -39,6 +39,8 @@ export function showResultBanner(scene, kind, { subText = "", portraitKey = null
         color: "#f5f3fa",
         backgroundColor: "rgba(20,18,26,0.75)",
         padding: { x: 14, y: 6 },
+        align: "center",
+        wordWrap: { width: GAME_WIDTH - 120, useAdvancedWrap: true },
         resolution: TEXT_RESOLUTION
       })
       .setOrigin(0.5)
